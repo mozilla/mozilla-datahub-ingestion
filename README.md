@@ -1,0 +1,1 @@
+# mozilla-datahub-ingestion-prototype
