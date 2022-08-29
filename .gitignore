@@ -5,3 +5,4 @@ venv/
 lookml_repositories/
 recipes/lookml/*.dhub.yaml  # These are auto-generated
 lookml_repositories.yaml
+.env
