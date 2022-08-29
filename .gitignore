@@ -1,0 +1,7 @@
+venv/
+.idea/
+*.egg-info/
+*.pyc
+lookml_repositories/
+recipes/lookml/*.dhub.yaml  # These are auto-generated
+lookml_repositories.yaml

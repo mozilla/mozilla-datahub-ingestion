@@ -1,0 +1,13 @@
+---
+source:
+  type: looker
+  config:
+    base_url: ${LOOKER_INSTANCE_URI}
+    client_id: ${LOOKER_CLIENT_ID}
+    client_secret: ${LOOKER_CLIENT_SECRET}
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${GMS_URL}
+    token: ${GMS_TOKEN}

@@ -1,0 +1,26 @@
+---
+source:
+  type: lookml
+  config:
+    base_folder:
+        "{{ path_to_lookml_folder }}"
+
+    project_name: "{{ lookml_project_name }}"
+    parse_table_names_from_sql: true
+
+    connection_to_platform_map:
+      bigquery-oauth:
+        platform: bigquery
+        default_db: mozdata
+        default_schema: telemetry
+      telemetry:
+        platform: bigquery
+        default_db: mozdata
+        default_schema: telemetry
+
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${GMS_URL}
+    token: ${GMS_TOKEN}

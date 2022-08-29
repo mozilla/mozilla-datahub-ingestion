@@ -1,0 +1,2 @@
+repositories:
+  looker-spoke-test: git@github.com:mozilla/test-spoke-repo.git

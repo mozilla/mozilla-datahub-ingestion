@@ -1,0 +1,11 @@
+---
+source:
+  type: file
+  config:
+    filename: "./recipes/sample_data/glean_static_ping.json"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${GMS_URL}
+    token: ${GMS_URL}

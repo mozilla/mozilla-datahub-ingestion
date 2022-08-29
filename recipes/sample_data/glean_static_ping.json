@@ -1,0 +1,115 @@
+[
+  {
+    "auditHeader": null ,
+    "proposedSnapshot": {
+      "com.linkedin.pegasus2avro.metadata.snapshot.DatasetSnapshot": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:Glean,test-app.main,PROD)" ,
+        "aspects": [
+          {
+            "com.linkedin.pegasus2avro.schema.SchemaMetadata": {
+              "schemaName": "test-app.main" ,
+              "platform": "urn:li:dataPlatform:Glean" ,
+              "version": 0 ,
+              "created": {
+                "time": 1621882982738 ,
+                "actor": "urn:li:corpuser:etl" ,
+                "impersonator": null
+              } ,
+              "lastModified": {
+                "time": 1621882982738 ,
+                "actor": "urn:li:corpuser:etl" ,
+                "impersonator": null
+              } ,
+              "deleted": null ,
+              "dataset": null ,
+              "cluster": null ,
+              "hash": "" ,
+              "platformSchema": {
+                "com.linkedin.pegasus2avro.schema.MySqlDDL": {
+                  "tableSchema": ""
+                }
+              } ,
+              "fields": [
+                {
+                  "fieldPath": "name" ,
+                  "jsonPath": null ,
+                  "nullable": true ,
+                  "description": null ,
+                  "type": {
+                    "type": {
+                      "com.linkedin.pegasus2avro.schema.StringType": {}
+                    }
+                  } ,
+                  "nativeDataType": "String()" ,
+                  "recursive": false ,
+                  "globalTags": null ,
+                  "glossaryTerms": null
+                } ,
+                {
+                  "fieldPath": "price" ,
+                  "jsonPath": null ,
+                  "nullable": true ,
+                  "description": null ,
+                  "type": {
+                    "type": {
+                      "com.linkedin.pegasus2avro.schema.NumberType": {}
+                    }
+                  } ,
+                  "nativeDataType": "Integer()" ,
+                  "recursive": false ,
+                  "globalTags": null ,
+                  "glossaryTerms": null
+                } ,
+                {
+                  "fieldPath": "square_footage" ,
+                  "jsonPath": null ,
+                  "nullable": true ,
+                  "description": null ,
+                  "type": {
+                    "type": {
+                      "com.linkedin.pegasus2avro.schema.NumberType": {}
+                    }
+                  } ,
+                  "nativeDataType": "Integer()" ,
+                  "recursive": false ,
+                  "globalTags": null ,
+                  "glossaryTerms": null
+                }
+              ] ,
+              "primaryKeys": null ,
+              "foreignKeysSpecs": null
+            }
+          } ,
+          {
+            "com.linkedin.pegasus2avro.common.InstitutionalMemory": {
+              "elements": [
+                {
+                  "url": "https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/baseline" ,
+                  "description": "Glean Dictionary Entry" ,
+                  "createStamp": {
+                    "time": 1581407189000 ,
+                    "actor": "urn:li:corpuser:jdoe" ,
+                    "impersonator": null
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    } ,
+    "proposedDelta": null
+  } ,
+  {
+    "auditHeader": null ,
+    "entityType": "dataset" ,
+    "entityUrn": "urn:li:dataset:(urn:li:dataPlatform:Glean,test-app.main,PROD)" ,
+    "entityKeyAspect": null ,
+    "changeType": "UPSERT" ,
+    "aspectName": "subTypes" ,
+    "aspect": {
+      "value": "{\"typeNames\": [\"Ping\"]}" ,
+      "contentType": "application/json"
+    }
+  }
+]
