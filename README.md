@@ -4,7 +4,7 @@
 
 To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/). In general, you'll need:
 
-- [Python](https://www.python.org/) (version 3.6+)
+- [Python](https://www.python.org/) (version 3.7+)
 - [Docker](https://www.docker.com/): DataHub uses Docker for local development and
   deployment.
     - [docker](https://docs.docker.com/engine/installation/#supported-platforms)
