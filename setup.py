@@ -6,6 +6,6 @@ setup(
     py_modules=['sync'],
     entry_points='''
         [console_scripts]
-        sync=sync.cli:cli
+        datahub-sync=sync.cli:cli
     ''',
 )

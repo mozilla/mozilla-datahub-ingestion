@@ -5,7 +5,7 @@ This repository contains scripts for sending metadata to a DataHub instance.
 Rough project structure (some files omitted):
 ```
 |-- recipe_templates/               -- templates for generated recipes
-|-- recipes/                        -- recipes run in production.
+|-- recipes/                        -- recipes run in production
 |-- sync/                           -- source for the scripts (CLI) 
 |-- lookml_repositories.sample.yaml -- configuration for lookml repositories
 |-- requirements.in                 -- pinned dependencies
@@ -14,7 +14,7 @@ Rough project structure (some files omitted):
 
 ## Development
 
-To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/). In general, you'll need:
+To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/).
 
 ### Prerequisites 
 
@@ -38,7 +38,7 @@ This should include the [DataHub CLI](https://datahubproject.io/docs/quickstart/
 3. Install the CLI locally: `$ pip install -e .`
 
 
-4. Run `$ sync --help` for usage.
+4. Run `$ datahub-sync --help` for usage.
 
 
 ## Appendix 

@@ -36,7 +36,7 @@ def bigquery_glean_lineage_emitter(dump_to_file: bool = False):
         return
 
     emitter = DataHubRestEmitter(
-        gms_server=os.environ["GMS_URL"], token=os.environ["GMS_TOKEN"]
+        gms_server=os.environ["DATAHUB_GMS_URL"], token=os.environ["DATAHUB_GMS_TOKEN"]
     )
     emitter.emit_mce(lineage_mce)
 

@@ -10,7 +10,11 @@ import click
 from sync.emitter import EMITTERS, run_emitter
 from sync.recipe_runner import run_recipes_in_dir
 
-logging.basicConfig(level=logging.INFO)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(levelname)-8s {%(name)s:%(lineno)d} - %(message)s",
+)
 
 
 @click.group()
