@@ -7,5 +7,5 @@ source:
 sink:
   type: "datahub-rest"
   config:
-    server: ${GMS_URL}
-    token: ${GMS_TOKEN}
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
