@@ -99,15 +99,15 @@ def run_recipes_in_dir(dirname: str, dump_to_file: bool) -> None:
     log.info(f"Running recipes in {recipes_path}")
     for recipe_file in recipe_files:
         log.info(f"Running {recipe_file}.")
-        with open(recipe_file) as f:
-            config = yaml.safe_load(f)
 
         if dump_to_file:
+            with open(recipe_file) as f:
+                config = yaml.safe_load(f)
+
             config["sink"] = _replace_sink_with_static_file(recipe_file.name)
 
             with tempfile.NamedTemporaryFile("w", suffix=".dhub.yaml") as new_recipe:
                 yaml.dump(config, new_recipe)
                 subprocess.call(["datahub", "ingest", "-c", new_recipe.name])
-
         else:
             subprocess.call(["datahub", "ingest", "-c", str(recipe_file)])
