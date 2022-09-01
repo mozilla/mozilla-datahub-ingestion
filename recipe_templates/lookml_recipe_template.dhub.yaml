@@ -3,7 +3,7 @@ source:
   type: lookml
   config:
     base_folder:
-        "{{ path_to_lookml_folder }}"
+      "{{ path_to_lookml_folder }}"
 
     project_name: "{{ lookml_project_name }}"
     parse_table_names_from_sql: true
