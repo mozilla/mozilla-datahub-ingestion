@@ -1,15 +1,106 @@
 import json
+import requests
 import logging
 import os
 from datetime import datetime
+import time
 
 import datahub.emitter.mce_builder as builder
 from datahub.emitter.rest_emitter import DataHubRestEmitter
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.metadata.schema_classes import (
+    InstitutionalMemoryClass,
+    AuditStampClass,
+    ChangeTypeClass,
+    InstitutionalMemoryMetadataClass,
+    OtherSchemaClass,
+    SchemaFieldClass,
+    SchemaFieldDataTypeClass,
+    SchemaMetadataClass,
+    StringTypeClass,
+)
+
+GLEAN_DICTIONARY_URL = "https://dictionary.telemetry.mozilla.org"
 
 log = logging.getLogger(__name__)
 
+def getCurrentTimestamp(time: int):
+    return AuditStampClass(time=time, actor="urn:li:corpuser:ingestion")
 
 def glean_emitter(dump_to_file: bool = False):
+    apps = requests.get(f"{GLEAN_DICTIONARY_URL}/data/apps.json").json()
+
+    for app in apps:
+        app_name = app["app_name"]
+        app_data = requests.get(
+            f"{GLEAN_DICTIONARY_URL}/data/{app_name}/index.json"
+        ).json()
+        pings = app_data["pings"]
+        now = int(time.time() * 1000)  # milliseconds since epoch
+        # emitter = DataHubRestEmitter(
+        #     gms_server=os.environ["DATAHUB_GMS_URL"],
+        #     token=os.environ["DATAHUB_GMS_TOKEN"],
+        # )
+        emitter = DataHubRestEmitter(
+            gms_server="http://localhost:8080", token="datahub"
+        )
+        for ping in pings:
+            ping_name = ping["name"]
+            ping_data = requests.get(
+                f"{GLEAN_DICTIONARY_URL}/data/{app_name}/pings/{ping_name}.json"
+            ).json()
+            institutional_memory_element = InstitutionalMemoryMetadataClass(
+                url=f"{GLEAN_DICTIONARY_URL}/apps/{app_name}/pings/{ping_name}",
+                description=ping["description"],
+                createStamp=getCurrentTimestamp(now),
+            )
+            ping_metadata: MetadataChangeProposalWrapper = (
+                MetadataChangeProposalWrapper(
+                    entityType="dataset",
+                    changeType=ChangeTypeClass.UPSERT,
+                    entityUrn=builder.make_dataset_urn(
+                        platform="Glean", name=f"{app_name}.{ping_name}", env="PROD"
+                    ),
+                    aspectName="institutionalMemory",
+                    aspect=InstitutionalMemoryClass(
+                        elements=[institutional_memory_element],
+                    ),
+                )
+            )
+            emitter.emit(ping_metadata)
+
+            metric_fields = []
+            for metric in ping_data["metrics"]:
+                field = SchemaFieldClass(
+                    fieldPath=metric["name"],
+                    type=SchemaFieldDataTypeClass(type=StringTypeClass()),
+                    nativeDataType="VARCHAR(50)",  # use this to provide the type of the field in the source system's vernacular
+                    description=metric["description"],
+                    lastModified=getCurrentTimestamp(now),
+                )
+                metric_fields.append(field)
+            ping_metric_fields: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
+                entityType="dataset",
+                changeType=ChangeTypeClass.UPSERT,
+                entityUrn=builder.make_dataset_urn(
+                    platform="Glean", name=f"{app_name}.{ping_name}", env="PROD"
+                ),
+                aspectName="schemaMetadata",
+                aspect=SchemaMetadataClass(
+                    schemaName=f"{app_name}.{ping_name}",
+                    platform=builder.make_data_platform_urn(
+                        "Glean"
+                    ),
+                    version=0,  # when the source system has a notion of versioning of schemas, insert this in, otherwise leave as 0
+                    hash="",  # when the source system has a notion of unique schemas identified via hash, include a hash, else leave it as empty string
+                    platformSchema=OtherSchemaClass(
+                        rawSchema="__insert raw schema here__"
+                    ),
+                    lastModified=getCurrentTimestamp(now),
+                    fields=metric_fields,
+                ),
+            )
+            emitter.emit(ping_metric_fields)
     log.info("Running the Glean emitter")
 
 
