@@ -41,6 +41,14 @@ This should include the [DataHub CLI](https://datahubproject.io/docs/quickstart/
 4. Run `$ datahub-sync --help` for usage.
 
 
+## Linting
+
+To test whether the code conforms to the linting rules, you can
+run `make lint` to check Python and Yaml styles.
+
+Running `make format` will auto-format the code according to the
+[style rules](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html).
+
 ## Appendix 
 
 Recipe - https://datahubproject.io/docs/metadata-ingestion#recipes

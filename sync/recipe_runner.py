@@ -18,8 +18,9 @@ def _generate_lookml_recipes(recipes_path: Path) -> None:
     """
     Generate LookML recipes from configuration and repositories.
 
-    LookML recipes have to be generated because they each sync LookML from one "project" (corresponds to one GitHub
-    repository) and some are private.
+    LookML recipes have to be generated because they each sync
+    LookML from one "project" (corresponds to one GitHub repository)
+    and some are private.
 
     To generate LookML recipes we:
      1. Read and validate the repository configuration.
@@ -32,7 +33,8 @@ def _generate_lookml_recipes(recipes_path: Path) -> None:
 
     if not lookml_repository_config or "repositories" not in lookml_repository_config:
         log.warning(
-            f"No properly formatted lookml repository config file {LOOKML_REPOSITORY_CONFIG} found..."
+            f"""No properly formatted lookml repository
+            config file {LOOKML_REPOSITORY_CONFIG} found..."""
         )
         return
 
@@ -75,14 +77,17 @@ def _replace_sink_with_static_file(recipe_filename: str) -> dict:
 
 def run_recipes_in_dir(dirname: str, dump_to_file: bool) -> None:
     """
-    This function is a thin wrapper around the DataHub CLI ingest method with some additional functionality
-    for debugging and generating recipes.
+    This function is a thin wrapper around the DataHub CLI ingest
+    method with some additional functionality for debugging and
+    generating recipes.
 
-    We forward to the DataHub CLI instead of using DataHub as a library (via datahub.ingestion.run.pipeline) because:
+    We forward to the DataHub CLI instead of using DataHub as a
+    library (via datahub.ingestion.run.pipeline) because:
        1. It has additional logging/reporting.
        2. It expands environment variables in recipe files.
 
-    Forwarding/invoking to the datahub.cli Click functions was also considered, but that has custom configuration
+    Forwarding/invoking to the datahub.cli Click functions was also
+    considered, but that has custom configuration
     that I didn't figure out how to forward.
     """
 
