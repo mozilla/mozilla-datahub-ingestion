@@ -13,23 +13,25 @@ from datahub.metadata.schema_classes import (
     AuditStampClass,
     ChangeTypeClass,
     InstitutionalMemoryMetadataClass,
-    OtherSchemaClass,
-    SchemaFieldClass,
-    SchemaFieldDataTypeClass,
-    SchemaMetadataClass,
-    StringTypeClass,
+    DatasetPropertiesClass,
+    SubTypesClass,
 )
 
 GLEAN_DICTIONARY_URL = "https://dictionary.telemetry.mozilla.org"
 
 log = logging.getLogger(__name__)
 
+
 def getCurrentTimestamp(time: int):
     return AuditStampClass(time=time, actor="urn:li:corpuser:ingestion")
 
+
 def glean_emitter(dump_to_file: bool = False):
     apps = requests.get(f"{GLEAN_DICTIONARY_URL}/data/apps.json").json()
-
+    emitter = DataHubRestEmitter(
+        gms_server=os.environ["DATAHUB_GMS_URL"],
+        token=os.environ["DATAHUB_GMS_TOKEN"],
+    )
     for app in apps:
         app_name = app["app_name"]
         app_data = requests.get(
@@ -37,21 +39,13 @@ def glean_emitter(dump_to_file: bool = False):
         ).json()
         pings = app_data["pings"]
         now = int(time.time() * 1000)  # milliseconds since epoch
-        # emitter = DataHubRestEmitter(
-        #     gms_server=os.environ["DATAHUB_GMS_URL"],
-        #     token=os.environ["DATAHUB_GMS_TOKEN"],
-        # )
-        emitter = DataHubRestEmitter(
-            gms_server="http://localhost:8080", token="datahub"
-        )
+
         for ping in pings:
             ping_name = ping["name"]
-            ping_data = requests.get(
-                f"{GLEAN_DICTIONARY_URL}/data/{app_name}/pings/{ping_name}.json"
-            ).json()
+            # link out to the Glean Dictionary for more information
             institutional_memory_element = InstitutionalMemoryMetadataClass(
                 url=f"{GLEAN_DICTIONARY_URL}/apps/{app_name}/pings/{ping_name}",
-                description=ping["description"],
+                description="Glean Dictionary Ping Documentation",
                 createStamp=getCurrentTimestamp(now),
             )
             ping_metadata: MetadataChangeProposalWrapper = (
@@ -67,40 +61,44 @@ def glean_emitter(dump_to_file: bool = False):
                     ),
                 )
             )
-            emitter.emit(ping_metadata)
 
-            metric_fields = []
-            for metric in ping_data["metrics"]:
-                field = SchemaFieldClass(
-                    fieldPath=metric["name"],
-                    type=SchemaFieldDataTypeClass(type=StringTypeClass()),
-                    nativeDataType="VARCHAR(50)",  # use this to provide the type of the field in the source system's vernacular
-                    description=metric["description"],
-                    lastModified=getCurrentTimestamp(now),
-                )
-                metric_fields.append(field)
-            ping_metric_fields: MetadataChangeProposalWrapper = MetadataChangeProposalWrapper(
-                entityType="dataset",
-                changeType=ChangeTypeClass.UPSERT,
-                entityUrn=builder.make_dataset_urn(
-                    platform="Glean", name=f"{app_name}.{ping_name}", env="PROD"
-                ),
-                aspectName="schemaMetadata",
-                aspect=SchemaMetadataClass(
-                    schemaName=f"{app_name}.{ping_name}",
-                    platform=builder.make_data_platform_urn(
-                        "Glean"
-                    ),
-                    version=0,  # when the source system has a notion of versioning of schemas, insert this in, otherwise leave as 0
-                    hash="",  # when the source system has a notion of unique schemas identified via hash, include a hash, else leave it as empty string
-                    platformSchema=OtherSchemaClass(
-                        rawSchema="__insert raw schema here__"
-                    ),
-                    lastModified=getCurrentTimestamp(now),
-                    fields=metric_fields,
-                ),
+            # add ping description to documentation
+            dataset_properties = DatasetPropertiesClass(
+                name=ping_name, description=ping["description"]
             )
-            emitter.emit(ping_metric_fields)
+            ping_properties: MetadataChangeProposalWrapper = (
+                MetadataChangeProposalWrapper(
+                    entityType="dataset",
+                    changeType=ChangeTypeClass.UPSERT,
+                    entityUrn=builder.make_dataset_urn(
+                        platform="Glean", name=f"{app_name}.{ping_name}", env="PROD"
+                    ),
+                    aspectName="datasetProperties",
+                    aspect=dataset_properties,
+                )
+            )
+
+            # mark the dataset type as Ping
+            ping_type = SubTypesClass(typeNames=["Ping"])
+            ping_type_proposal: MetadataChangeProposalWrapper = (
+                MetadataChangeProposalWrapper(
+                    entityType="dataset",
+                    changeType=ChangeTypeClass.UPSERT,
+                    entityUrn=builder.make_dataset_urn(
+                        platform="Glean", name=f"{app_name}.{ping_name}", env="PROD"
+                    ),
+                    aspectName="subTypes",
+                    aspect=ping_type,
+                )
+            )
+
+            emitter.emit(ping_metadata)
+            emitter.emit(ping_properties)
+            emitter.emit(ping_type_proposal)
+
+            # TODO: Add metrics as schema fields
+            # TODO: Add lineage
+
     log.info("Running the Glean emitter")
 
 
