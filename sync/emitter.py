@@ -22,8 +22,9 @@ GLEAN_DICTIONARY_URL = "https://dictionary.telemetry.mozilla.org"
 log = logging.getLogger(__name__)
 
 
-def getCurrentTimestamp(time: int):
-    return AuditStampClass(time=time, actor="urn:li:corpuser:ingestion")
+def _get_current_timestamp() -> AuditStampClass:
+    now = int(time.time() * 1000)  # milliseconds since epoch
+    return AuditStampClass(time=now, actor="urn:li:corpuser:ingestion")
 
 
 def glean_emitter(dump_to_file: bool = False):
@@ -38,7 +39,6 @@ def glean_emitter(dump_to_file: bool = False):
             f"{GLEAN_DICTIONARY_URL}/data/{app_name}/index.json"
         ).json()
         pings = app_data["pings"]
-        now = int(time.time() * 1000)  # milliseconds since epoch
 
         for ping in pings:
             ping_name = ping["name"]
@@ -46,7 +46,7 @@ def glean_emitter(dump_to_file: bool = False):
             institutional_memory_element = InstitutionalMemoryMetadataClass(
                 url=f"{GLEAN_DICTIONARY_URL}/apps/{app_name}/pings/{ping_name}",
                 description="Glean Dictionary Ping Documentation",
-                createStamp=getCurrentTimestamp(now),
+                createStamp=_get_current_timestamp(),
             )
             ping_metadata: MetadataChangeProposalWrapper = (
                 MetadataChangeProposalWrapper(
