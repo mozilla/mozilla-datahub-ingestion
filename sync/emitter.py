@@ -15,6 +15,8 @@ from datahub.metadata.schema_classes import (
     InstitutionalMemoryMetadataClass,
     DatasetPropertiesClass,
     SubTypesClass,
+    UpstreamLineageClass,
+    UpstreamClass,
 )
 
 from sync.glean import get_glean_pings
@@ -73,16 +75,36 @@ def glean_emitter(dump_to_file: bool = False):
 
         # mark the dataset type as Ping
         ping_type = SubTypesClass(typeNames=["Ping"])
-        ping_type_mcp = _make_mcp_wrapper(
-            glean_qualified_urn, "subTypes", ping_type
+        ping_type_mcp = _make_mcp_wrapper(glean_qualified_urn, "subTypes", ping_type)
+
+        # mark the upstream lineage of BigQuery live tables as Glean ping
+        upstream_lineage = UpstreamLineageClass(
+            upstreams=[
+                UpstreamClass(
+                    dataset=glean_qualified_urn,
+                    type="TRANSFORMED",
+                )
+            ]
         )
+        upstream_lineage_mcps = [
+            _make_mcp_wrapper(
+                builder.make_dataset_urn(
+                    platform="bigquery", name=qualified_table_name, env="PROD"
+                ),
+                "upstreamLineage",
+                upstream_lineage,
+            )
+            for qualified_table_name in glean_ping.bigquery_fully_qualified_names
+        ]
 
         emitter.emit(institutional_memory_mcp)
         emitter.emit(dataset_properties_mcp)
         emitter.emit(ping_type_mcp)
 
+        for upstream_lineage_mcp in upstream_lineage_mcps:
+            emitter.emit(upstream_lineage_mcp)
+
         # TODO: Add metrics as schema fields
-        # TODO: Add lineage
 
     log.info("Running the Glean emitter")
 
