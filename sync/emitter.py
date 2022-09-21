@@ -3,7 +3,6 @@ import os
 import time
 
 import datahub.emitter.mce_builder as builder
-from avrogen.dict_wrapper import DictWrapper
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.emitter.rest_emitter import DataHubRestEmitter
 from datahub.metadata.schema_classes import (
