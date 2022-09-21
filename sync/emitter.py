@@ -27,18 +27,6 @@ def _get_current_timestamp() -> AuditStampClass:
     return AuditStampClass(time=now, actor="urn:li:corpuser:ingestion")
 
 
-def _make_mcp_wrapper(
-    urn: str, aspect_name: str, aspect: DictWrapper
-) -> MetadataChangeProposalWrapper:
-    return MetadataChangeProposalWrapper(
-        entityType="dataset",
-        changeType=ChangeTypeClass.UPSERT,
-        entityUrn=urn,
-        aspectName=aspect_name,
-        aspect=aspect,
-    )
-
-
 def glean_emitter():
     log.info("Running the Glean emitter")
 
@@ -61,21 +49,35 @@ def glean_emitter():
                 )
             ],
         )
-        institutional_memory_mcp = _make_mcp_wrapper(
-            glean_qualified_urn, "institutionalMemory", institutional_memory
+        institutional_memory_mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
+            changeType=ChangeTypeClass.UPSERT,
+            entityUrn=glean_qualified_urn,
+            aspectName="institutionalMemory",
+            aspect=institutional_memory,
         )
 
         # add ping description to documentation
         dataset_properties = DatasetPropertiesClass(
             name=glean_ping.name, description=glean_ping.description
         )
-        dataset_properties_mcp = _make_mcp_wrapper(
-            glean_qualified_urn, "datasetProperties", dataset_properties
+        dataset_properties_mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
+            changeType=ChangeTypeClass.UPSERT,
+            entityUrn=glean_qualified_urn,
+            aspectName="datasetProperties",
+            aspect=dataset_properties,
         )
 
         # mark the dataset type as Ping
         ping_type = SubTypesClass(typeNames=["Ping"])
-        ping_type_mcp = _make_mcp_wrapper(glean_qualified_urn, "subTypes", ping_type)
+        ping_type_mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
+            changeType=ChangeTypeClass.UPSERT,
+            entityUrn=glean_qualified_urn,
+            aspectName="subTypes",
+            aspect=ping_type,
+        )
 
         # mark the upstream lineage of BigQuery live tables as Glean ping
         upstream_lineage = UpstreamLineageClass(
@@ -87,12 +89,14 @@ def glean_emitter():
             ]
         )
         upstream_lineage_mcps = [
-            _make_mcp_wrapper(
-                builder.make_dataset_urn(
+            MetadataChangeProposalWrapper(
+                entityType="dataset",
+                changeType=ChangeTypeClass.UPSERT,
+                entityUrn=builder.make_dataset_urn(
                     platform="bigquery", name=qualified_table_name, env="PROD"
                 ),
-                "upstreamLineage",
-                upstream_lineage,
+                aspectName="upstreamLineage",
+                aspect=upstream_lineage,
             )
             for qualified_table_name in glean_ping.bigquery_fully_qualified_names
         ]
