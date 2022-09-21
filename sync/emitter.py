@@ -1,7 +1,5 @@
-import json
 import logging
 import os
-from datetime import datetime
 import time
 
 from avrogen.dict_wrapper import DictWrapper
@@ -41,7 +39,9 @@ def _make_mcp_wrapper(
     )
 
 
-def glean_emitter(dump_to_file: bool = False):
+def glean_emitter():
+    log.info("Running the Glean emitter")
+
     emitter = DataHubRestEmitter(
         gms_server=os.environ["DATAHUB_GMS_URL"],
         token=os.environ["DATAHUB_GMS_TOKEN"],
@@ -106,18 +106,17 @@ def glean_emitter(dump_to_file: bool = False):
 
         # TODO: Add metrics as schema fields
 
-    log.info("Running the Glean emitter")
 
 
-def legacy_telemetry_emitter(dump_to_file: bool = False):
+def legacy_telemetry_emitter():
     log.info("Running the Legacy Telemetry emitter")
 
 
-def bigquery_legacy_telemetry_lineage_emitter(dump_to_file: bool = False):
+def bigquery_legacy_telemetry_lineage_emitter():
     log.info("Running the BigQuery Legacy Telemetry Lineage Emitter")
 
 
-EMITTERS = {
+EMIT_FUNCTIONS = {
     "glean": glean_emitter,
     "legacy_telemetry": legacy_telemetry_emitter,
     "bigquery_legacy_lineage": bigquery_legacy_telemetry_lineage_emitter,
@@ -125,5 +124,6 @@ EMITTERS = {
 
 
 def run_emitter(emitter_name: str, dump_to_file: bool) -> None:
-    emitter = EMITTERS[emitter_name]
-    emitter(dump_to_file=dump_to_file)
+    # TODO: Emit based on dump_to_file for debugging.
+    emit_function = EMIT_FUNCTIONS[emitter_name]
+    emit_function()
