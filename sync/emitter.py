@@ -2,19 +2,19 @@ import logging
 import os
 import time
 
-from avrogen.dict_wrapper import DictWrapper
 import datahub.emitter.mce_builder as builder
-from datahub.emitter.rest_emitter import DataHubRestEmitter
+from avrogen.dict_wrapper import DictWrapper
 from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.emitter.rest_emitter import DataHubRestEmitter
 from datahub.metadata.schema_classes import (
-    InstitutionalMemoryClass,
     AuditStampClass,
     ChangeTypeClass,
-    InstitutionalMemoryMetadataClass,
     DatasetPropertiesClass,
+    InstitutionalMemoryClass,
+    InstitutionalMemoryMetadataClass,
     SubTypesClass,
-    UpstreamLineageClass,
     UpstreamClass,
+    UpstreamLineageClass,
 )
 
 from sync.glean import get_glean_pings
@@ -105,7 +105,6 @@ def glean_emitter():
             emitter.emit(upstream_lineage_mcp)
 
         # TODO: Add metrics as schema fields
-
 
 
 def legacy_telemetry_emitter():
