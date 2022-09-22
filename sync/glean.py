@@ -23,7 +23,10 @@ class GleanPing:
 
     @property
     def bigquery_dataset_names(self) -> Sequence[str]:
-        return [app_id.replace(".", "_").lower() + "_live" for app_id in self.app_ids]
+        return [
+            app_id.replace(".", "_").replace("-", "_").lower() + "_live"
+            for app_id in self.app_ids
+        ]
 
     @property
     def bigquery_table_name(self) -> str:
