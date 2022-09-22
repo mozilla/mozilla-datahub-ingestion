@@ -7,7 +7,7 @@ import logging
 
 import click
 
-from sync.emitter import EMITTERS, run_emitter
+from sync.emitter import EMIT_FUNCTIONS, run_emitter
 from sync.recipe_runner import run_recipes_in_dir
 
 
@@ -40,7 +40,7 @@ def recipes(directory: str, dump_to_file: bool):
 
 
 @cli.command()
-@click.argument("name", type=click.Choice(EMITTERS.keys()))
+@click.argument("name", type=click.Choice(EMIT_FUNCTIONS.keys()))
 @click.option(
     "--dump_to_file",
     is_flag=True,
