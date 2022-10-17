@@ -14,6 +14,7 @@ from datahub.metadata.schema_classes import (
     SubTypesClass,
     UpstreamClass,
     UpstreamLineageClass,
+    BrowsePathsClass,
 )
 
 from sync.glean import get_glean_pings
@@ -78,6 +79,15 @@ def glean_emitter():
             aspect=ping_type,
         )
 
+        browse_path = BrowsePathsClass(paths=[f"/prod/glean/{glean_ping.app_name}"])
+        browse_path_mcp = MetadataChangeProposalWrapper(
+            entityType="dataset",
+            changeType=ChangeTypeClass.UPSERT,
+            entityUrn=glean_qualified_urn,
+            aspectName="browsePaths",
+            aspect=browse_path,
+        )
+
         # mark the upstream lineage of BigQuery live tables as Glean ping
         upstream_lineage = UpstreamLineageClass(
             upstreams=[
@@ -103,6 +113,7 @@ def glean_emitter():
         emitter.emit(institutional_memory_mcp)
         emitter.emit(dataset_properties_mcp)
         emitter.emit(ping_type_mcp)
+        emitter.emit(browse_path_mcp)
 
         for upstream_lineage_mcp in upstream_lineage_mcps:
             emitter.emit(upstream_lineage_mcp)
