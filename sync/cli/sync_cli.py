@@ -8,7 +8,6 @@ import logging
 import click
 
 from sync.datahub.emitter import EMIT_FUNCTIONS, run_emitter
-from sync.datahub.recipe_runner import run_recipes_in_dir
 
 
 logging.basicConfig(
@@ -20,23 +19,6 @@ logging.basicConfig(
 @click.group()
 def datahub():
     """Commands for Datahub"""
-
-
-@datahub.command()
-@click.argument("directory", type=click.Path(exists=True))
-@click.option(
-    "--dump_to_file",
-    is_flag=True,
-    default=False,
-    help="Replaces all recipe sinks with a JSON file sink (useful for debugging).",
-)
-def recipes(directory: str, dump_to_file: bool):
-    """
-    Run each recipe (.dhub.yaml file) in a directory.
-
-    DIRECTORY: Path to the directory of recipes to run.
-    """
-    run_recipes_in_dir(directory, dump_to_file)
 
 
 @datahub.command()

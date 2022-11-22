@@ -1,6 +1,7 @@
 # mozilla-datahub-ingestion-prototype
 
-This repository contains scripts for sending metadata to a DataHub instance.
+This repository contains scripts for sending metadata to Data catalog tools we're prototyping
+(DataHub, Dataplex)
 
 Rough project structure (some files omitted):
 ```
