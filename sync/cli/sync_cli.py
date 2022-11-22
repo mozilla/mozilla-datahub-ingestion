@@ -7,8 +7,7 @@ import logging
 
 import click
 
-from sync.emitter import EMIT_FUNCTIONS, run_emitter
-from sync.recipe_runner import run_recipes_in_dir
+from sync.datahub.emitter import EMIT_FUNCTIONS, run_emitter
 
 
 logging.basicConfig(
@@ -18,28 +17,11 @@ logging.basicConfig(
 
 
 @click.group()
-def cli():
-    pass
+def datahub():
+    """Commands for Datahub"""
 
 
-@cli.command()
-@click.argument("directory", type=click.Path(exists=True))
-@click.option(
-    "--dump_to_file",
-    is_flag=True,
-    default=False,
-    help="Replaces all recipe sinks with a JSON file sink (useful for debugging).",
-)
-def recipes(directory: str, dump_to_file: bool):
-    """
-    Run each recipe (.dhub.yaml file) in a directory.
-
-    DIRECTORY: Path to the directory of recipes to run.
-    """
-    run_recipes_in_dir(directory, dump_to_file)
-
-
-@cli.command()
+@datahub.command()
 @click.argument("name", type=click.Choice(EMIT_FUNCTIONS.keys()))
 @click.option(
     "--dump_to_file",
@@ -54,3 +36,28 @@ def emitter(name: str, dump_to_file: bool):
     NAME: The name of the chosen metadata emitter.
     """
     run_emitter(name, dump_to_file)
+
+
+@click.group()
+def dataplex():
+    """Commands for Dataplex"""
+
+
+@dataplex.command()
+def glean_pings():
+    ...
+
+
+@dataplex.command()
+def lookml():
+    ...
+
+
+@dataplex.command()
+def looker():
+    ...
+
+
+@click.group(commands={"datahub": datahub, "dataplex": dataplex})
+def cli():
+    ...

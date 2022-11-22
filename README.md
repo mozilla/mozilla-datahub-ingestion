@@ -1,11 +1,10 @@
 # mozilla-datahub-ingestion-prototype
 
-This repository contains scripts for sending metadata to a DataHub instance.
+This repository contains scripts for sending metadata to Data catalog tools we're prototyping
+(DataHub, Dataplex)
 
 Rough project structure (some files omitted):
 ```
-|-- recipe_templates/               -- templates for generated recipes
-|-- recipes/                        -- recipes run in production
 |-- sync/                           -- source for the scripts (CLI) 
 |-- lookml_repositories.sample.yaml -- configuration for lookml repositories
 |-- requirements.in                 -- pinned dependencies

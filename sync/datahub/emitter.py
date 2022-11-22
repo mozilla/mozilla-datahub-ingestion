@@ -125,14 +125,9 @@ def legacy_telemetry_emitter():
     log.info("Running the Legacy Telemetry emitter")
 
 
-def bigquery_legacy_telemetry_lineage_emitter():
-    log.info("Running the BigQuery Legacy Telemetry Lineage Emitter")
-
-
 EMIT_FUNCTIONS = {
     "glean": glean_emitter,
     "legacy_telemetry": legacy_telemetry_emitter,
-    "bigquery_legacy_lineage": bigquery_legacy_telemetry_lineage_emitter,
 }
 
 
