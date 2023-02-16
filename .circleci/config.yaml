@@ -1,0 +1,22 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@1.5.0
+
+jobs:
+  unit-tests:
+    executor:
+      name: python/default
+      tag: 3.10.10
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Run tests
+          command: pytest
+
+workflows:
+  ci:
+    jobs:
+      - unit-tests
