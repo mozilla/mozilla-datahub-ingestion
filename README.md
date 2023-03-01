@@ -5,6 +5,16 @@ This repository contains code for sending metadata from Mozilla-specific platfor
 The main entrypoint is the datahub-sync CLI, see `datahub-sync --help` and the Setup section for
 more details.
 
+## Setting up a new DataHub instance
+
+The recipes that handle Looker and BigQuery metadata are managed via UI Ingestion and stored by SRE. Ask in 
+`#data-help` for assistance.
+
+To bootstrap the custom platforms we ingest metadata for, run the `platform_recipe.dhub.yaml` recipe:
+
+`$ DATAHUB_GMS_URL=... DATAHUB_GMS_TOKEN=... datahub ingest -c recipes/platform_recipe.dhub.yaml`
+
+
 ## Development
 
 To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/).
@@ -43,6 +53,5 @@ Recipe - https://datahubproject.io/docs/metadata-ingestion#recipes
 
 TODO: 
 - Architecture diagram
-- Tests
 - Airflow integration
 - Reference copy on metadata

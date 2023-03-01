@@ -1,0 +1,11 @@
+---
+source:
+  type: "file"
+  config:
+    filename: "./recipes/platform_mce.json"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
