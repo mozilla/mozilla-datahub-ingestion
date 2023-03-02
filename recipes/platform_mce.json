@@ -1,0 +1,22 @@
+[
+  {
+    "auditHeader": null,
+    "proposedSnapshot": {
+      "com.linkedin.pegasus2avro.metadata.snapshot.DataPlatformSnapshot": {
+        "urn": "urn:li:dataPlatform:Glean",
+        "aspects": [
+          {
+            "com.linkedin.pegasus2avro.dataplatform.DataPlatformInfo": {
+              "datasetNameDelimiter": "/",
+              "name": "Glean",
+              "displayName": "Glean Telemetry",
+              "type": "OTHERS",
+              "logoUrl": "https://raw.githubusercontent.com/mozilla/glean-dictionary/main/public/glean_logo.png"
+            }
+          }
+        ]
+      }
+    },
+    "proposedDelta": null
+  }
+]
