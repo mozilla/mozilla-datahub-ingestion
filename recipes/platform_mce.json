@@ -18,5 +18,25 @@
       }
     },
     "proposedDelta": null
+  },
+  {
+    "auditHeader": null,
+    "proposedSnapshot": {
+      "com.linkedin.pegasus2avro.metadata.snapshot.DataPlatformSnapshot": {
+        "urn": "urn:li:dataPlatform:LegacyTelemetry",
+        "aspects": [
+          {
+            "com.linkedin.pegasus2avro.dataplatform.DataPlatformInfo": {
+              "datasetNameDelimiter": "/",
+              "name": "LegacyTelemetry",
+              "displayName": "Legacy Telemetry",
+              "type": "OTHERS",
+              "logoUrl": "https://dictionary.telemetry.mozilla.org/data/firefox_desktop/logo.svg"
+            }
+          }
+        ]
+      }
+    },
+    "proposedDelta": null
   }
 ]
