@@ -37,6 +37,7 @@ def _get_ping_schemas() -> Dict[str, Sequence[str]]:
     with tarfile.open(fileobj=schema_file, mode="r|gz") as tar:
         schema_versions = defaultdict(list)
         for member in tar:
+            # pdb.set_trace()
             if member.name.startswith(
                 "mozilla-pipeline-schemas-generated-schemas/schemas/telemetry/"
             ) and member.name.endswith(".schema.json"):
