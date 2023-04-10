@@ -12,27 +12,22 @@ SCHEMA_URL = "https://github.com/mozilla/mozilla-pipeline-schemas/archive/genera
 @dataclass
 class LegacyPing:
     name: str
-    versions: Sequence[str] = list
+    versions: Sequence[str]
 
     @property
     def bigquery_fully_qualified_names(self) -> Sequence[str]:
         table_names = []
         for version in self.versions:
-            table_names.append(
-                f"moz-fx-data-shared-prod.telemetry_live."
-                + self.name.replace("-", "_")
-                + "_v"
-                + version.split(".")[1]
-            )
+            table_name = f"{self.name.replace('-', '_')}_v{version.split('.')[1]}"
+            table_names.append(f"moz-fx-data-shared-prod.telemetry_live.{table_name}")
         return table_names
 
 
-def _get_ping_schemas() -> Dict[str, str]:
+def _get_ping_schemas() -> Dict[str, Sequence[str]]:
     """
     Fetches the latest version of the schema tarball from GitHub and returns a dict of ping names and their schema versions.
 
-    :return: Dict[str, str]
-    Examples:
+    Example:
     {'account-ecosystem': ['account-ecosystem.4.schema.json'], 'android-anr-report': ['android-anr-report.1.schema.json', 'android-anr-report.2.schema.json'], 'anonymous': ['anonymous.4.schema.json']}
     """
     print("Fetching schemas from GitHub...")
@@ -42,7 +37,6 @@ def _get_ping_schemas() -> Dict[str, str]:
     with tarfile.open(fileobj=schema_file, mode="r|gz") as tar:
         schema_versions = defaultdict(list)
         for member in tar:
-            # pdb.set_trace()
             if member.name.startswith(
                 "mozilla-pipeline-schemas-generated-schemas/schemas/telemetry/"
             ) and member.name.endswith(".schema.json"):
