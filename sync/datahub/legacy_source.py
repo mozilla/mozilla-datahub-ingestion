@@ -1,4 +1,3 @@
-import time
 from typing import Iterable
 
 from datahub.configuration.common import ConfigModel
@@ -9,71 +8,54 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper, ChangeTypeClass
 import datahub.emitter.mce_builder as builder
 from datahub.metadata.schema_classes import (
     BrowsePathsClass,
-    InstitutionalMemoryClass,
-    InstitutionalMemoryMetadataClass,
-    AuditStampClass,
-    DatasetPropertiesClass,
     SubTypesClass,
     UpstreamLineageClass,
     UpstreamClass,
 )
 
-from sync.glean import get_glean_pings
+from sync.legacy import get_legacy_pings
 
 
-def _get_current_timestamp() -> AuditStampClass:
-    now = int(time.time() * 1000)  # milliseconds since epoch
-    return AuditStampClass(time=now, actor="urn:li:corpuser:ingestion")
-
-
-class GleanSourceConfig(ConfigModel):
+class LegacySourceConfig(ConfigModel):
     env: str = "PROD"
 
 
-class GleanSource(Source):
-    source_config: GleanSourceConfig
+class LegacySource(Source):
+    source_config: LegacySourceConfig
     report: SourceReport = SourceReport()
 
-    def __init__(self, config: GleanSourceConfig, ctx: PipelineContext):
+    def __init__(self, config: LegacySourceConfig, ctx: PipelineContext):
         super().__init__(ctx)
         self.source_config = config
 
     @classmethod
     def create(cls, config_dict, ctx):
-        config = GleanSourceConfig.parse_obj(config_dict)
+        config = LegacySourceConfig.parse_obj(config_dict)
         return cls(config, ctx)
 
     def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        for glean_ping in get_glean_pings():
-            glean_qualified_urn = builder.make_dataset_urn(
-                platform="Glean",
-                name=glean_ping.qualified_name,
+        for legacy_ping in get_legacy_pings():
+            legacy_qualified_urn = builder.make_dataset_urn(
+                platform="LegacyTelemetry",
+                name=legacy_ping.name,
                 env=self.source_config.env,
             )
-            glean_ping_aspects = [
-                InstitutionalMemoryClass(
-                    elements=[
-                        InstitutionalMemoryMetadataClass(
-                            url=glean_ping.glean_dictionary_url,
-                            description="Glean Dictionary Ping Documentation",
-                            createStamp=_get_current_timestamp(),
-                        )
-                    ],
-                ),
-                DatasetPropertiesClass(
-                    name=glean_ping.name, description=glean_ping.description
-                ),
+            legacy_ping_aspects = [
                 SubTypesClass(typeNames=["Ping"]),
-                BrowsePathsClass(paths=[f"/{self.source_config.env.lower()}/glean/{glean_ping.app_name}"]),
+                BrowsePathsClass(
+                    paths=[
+                        f"/{self.source_config.env.lower()}/legacy/{legacy_ping.name}"
+                    ]
+                ),
             ]
-            glean_ping_mcps = MetadataChangeProposalWrapper.construct_many(
-                entityUrn=glean_qualified_urn, aspects=glean_ping_aspects
+            legacy_ping_mcps = MetadataChangeProposalWrapper.construct_many(
+                entityUrn=legacy_qualified_urn, aspects=legacy_ping_aspects
             )
 
             upstream_lineage = UpstreamLineageClass(
                 upstreams=[
                     UpstreamClass(
-                        dataset=glean_qualified_urn,
+                        dataset=legacy_qualified_urn,
                         type="TRANSFORMED",
                     )
                 ]
@@ -90,10 +72,9 @@ class GleanSource(Source):
                     aspectName="upstreamLineage",
                     aspect=upstream_lineage,
                 )
-                for qualified_table_name in glean_ping.bigquery_fully_qualified_names
+                for qualified_table_name in legacy_ping.bigquery_fully_qualified_names
             ]
-
-            for mcp in glean_ping_mcps + upstream_lineage_mcps:
+            for mcp in legacy_ping_mcps + upstream_lineage_mcps:
                 wu = mcp.as_workunit()
                 self.report.report_workunit(wu)
                 yield wu
