@@ -9,15 +9,9 @@ import tarfile
 import os.path
 
 
-def make_tarfile(output_filename, source_dir):
-    with tarfile.open(output_filename, "w:gz") as tar:
-        tar.add(source_dir, arcname=os.path.basename(source_dir))
-
-
 @dataclass
 class MockApiResponse:
     content: bytes
-
 
 
 @patch("requests.get")
@@ -26,14 +20,15 @@ def test_get_legacy_pings(mock_get):
     with tempfile.NamedTemporaryFile(suffix=".tar.gz") as fp:
         with tarfile.open(fileobj=fp, mode="w:gz") as tar:
             tar.add(
-                Path("tests/sample_data/mozilla-pipeline-schemas"),
-                arcname=os.path.basename("tests/sample_data/mozilla-pipeline-schemas"),
+                Path("tests/sample_data/mozilla-pipeline-schemas-generated-schemas"),
+                arcname=os.path.basename("tests/sample_data/mozilla-pipeline-schemas-generated-schemas"),
             )
         fp.seek(0)
         mock_get.side_effect = [MockApiResponse(fp.read())]
-    print("HEYY", mock_get.side_effect)
 
     pings = _get_ping_schemas()
-    print(pings)
+
     assert len(pings) == 1
+    assert "fake-ping" in pings
+    assert len(pings["fake-ping"]) == 2
 
