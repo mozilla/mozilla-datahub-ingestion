@@ -64,7 +64,11 @@ class GleanSource(Source):
                     name=glean_ping.name, description=glean_ping.description
                 ),
                 SubTypesClass(typeNames=["Ping"]),
-                BrowsePathsClass(paths=[f"/{self.source_config.env.lower()}/glean/{glean_ping.app_name}"]),
+                BrowsePathsClass(
+                    paths=[
+                        f"/{self.source_config.env.lower()}/glean/{glean_ping.app_name}"
+                    ]
+                ),
             ]
             glean_ping_mcps = MetadataChangeProposalWrapper.construct_many(
                 entityUrn=glean_qualified_urn, aspects=glean_ping_aspects
