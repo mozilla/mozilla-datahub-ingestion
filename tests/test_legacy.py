@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 import tempfile
-from typing import Union
 from unittest.mock import patch
 
-from sync.legacy import _get_ping_schemas
+from sync.legacy import get_legacy_pings
 import tarfile
 import os.path
 
@@ -21,14 +20,14 @@ def test_get_legacy_pings(mock_get):
         with tarfile.open(fileobj=fp, mode="w:gz") as tar:
             tar.add(
                 Path("tests/sample_data/mozilla-pipeline-schemas-generated-schemas"),
-                arcname=os.path.basename("tests/sample_data/mozilla-pipeline-schemas-generated-schemas"),
+                arcname=os.path.basename("mozilla-pipeline-schemas-generated-schemas"),
             )
         fp.seek(0)
         mock_get.side_effect = [MockApiResponse(fp.read())]
 
-    pings = _get_ping_schemas()
+    pings = get_legacy_pings()
 
     assert len(pings) == 1
-    assert "fake-ping" in pings
-    assert len(pings["fake-ping"]) == 2
-
+    assert pings[0].name == "fake-ping"
+    assert len(pings[0].versions) == 2
+    assert "fake-ping.3" in pings[0].versions
