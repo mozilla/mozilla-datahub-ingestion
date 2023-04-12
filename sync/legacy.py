@@ -6,7 +6,7 @@ import requests
 import tarfile
 from io import BytesIO
 
-SCHEMA_URL = "https://github.com/mozilla/mozilla-pipeline-schemas/archive/generated-schemas.tar.gz"
+SCHEMA_URL = "https://github.com/mozilla-services/mozilla-pipeline-schemas/archive/generated-schemas.tar.gz"
 
 
 @dataclass
