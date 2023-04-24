@@ -31,3 +31,4 @@ def test_get_legacy_pings(mock_get):
     assert pings[0].name == "fake-ping"
     assert len(pings[0].versions) == 2
     assert "fake-ping.3" in pings[0].versions
+    assert "fake-ping.4" in pings[0].versions
