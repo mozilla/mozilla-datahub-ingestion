@@ -1,8 +1,6 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
-from datahub.configuration.common import ConfigModel
 from datahub.ingestion.api.common import PipelineContext
-from datahub.ingestion.api.source import Source, SourceReport
 from datahub.ingestion.api.workunit import MetadataWorkUnit
 from datahub.emitter.mcp import MetadataChangeProposalWrapper, ChangeTypeClass
 import datahub.emitter.mce_builder as builder
@@ -12,21 +10,50 @@ from datahub.metadata.schema_classes import (
     UpstreamLineageClass,
     UpstreamClass,
 )
+from datahub.ingestion.source.state.entity_removal_state import GenericCheckpointState
+from datahub.ingestion.source.state.stale_entity_removal_handler import (
+    StatefulStaleMetadataRemovalConfig,
+    StaleEntityRemovalSourceReport,
+    StaleEntityRemovalHandler,
+)
+from datahub.ingestion.source.state.stateful_ingestion_base import (
+    StatefulIngestionConfigBase,
+    StatefulIngestionSourceBase,
+)
+from datahub.utilities.source_helpers import (
+    auto_stale_entity_removal,
+    auto_workunit_reporter,
+)
 
 from sync.legacy import get_legacy_pings
 
 
-class LegacySourceConfig(ConfigModel):
+class LegacySourceConfig(StatefulIngestionConfigBase):
     env: str = "PROD"
+    stateful_ingestion: Optional[StatefulStaleMetadataRemovalConfig] = None
 
 
-class LegacySource(Source):
+class LegacySource(StatefulIngestionSourceBase):
+
     source_config: LegacySourceConfig
-    report: SourceReport = SourceReport()
+    report: StaleEntityRemovalSourceReport
 
     def __init__(self, config: LegacySourceConfig, ctx: PipelineContext):
-        super().__init__(ctx)
+        super().__init__(config, ctx)
         self.source_config = config
+        self.platform = "LegacyTelemetry"
+        self.report = StaleEntityRemovalSourceReport()
+
+        self.stale_entity_removal_handler = StaleEntityRemovalHandler(
+            source=self,
+            config=self.source_config,
+            state_type_class=GenericCheckpointState,
+            pipeline_name=self.ctx.pipeline_name,
+            run_id=self.ctx.run_id,
+        )
+
+    def get_platform_instance_id(self) -> str:
+        return f"{self.platform}"
 
     @classmethod
     def create(cls, config_dict, ctx):
@@ -34,9 +61,18 @@ class LegacySource(Source):
         return cls(config, ctx)
 
     def get_workunits(self) -> Iterable[MetadataWorkUnit]:
+        return auto_stale_entity_removal(
+            self.stale_entity_removal_handler,
+            auto_workunit_reporter(
+                self.report,
+                self.get_workunits_internal(),
+            ),
+        )
+
+    def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
         for legacy_ping in get_legacy_pings():
             legacy_qualified_urn = builder.make_dataset_urn(
-                platform="LegacyTelemetry",
+                platform=self.platform,
                 name=legacy_ping.name,
                 env=self.source_config.env,
             )
@@ -76,11 +112,7 @@ class LegacySource(Source):
             ]
             for mcp in legacy_ping_mcps + upstream_lineage_mcps:
                 wu = mcp.as_workunit()
-                self.report.report_workunit(wu)
                 yield wu
 
-    def get_report(self) -> SourceReport:
+    def get_report(self) -> StaleEntityRemovalSourceReport:
         return self.report
-
-    def close(self) -> None:
-        pass
