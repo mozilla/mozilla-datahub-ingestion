@@ -12,13 +12,13 @@ SCHEMA_URL = "https://github.com/mozilla/mozilla-pipeline-schemas/archive/genera
 @dataclass
 class LegacyPing:
     name: str
-    versions: Sequence[str]
+    versions: Sequence[int]
 
     @property
     def bigquery_fully_qualified_names(self) -> Sequence[str]:
         table_names = []
         for version in self.versions:
-            table_name = f"{self.name.replace('-', '_')}_v{version.split('.')[1]}"
+            table_name = f"{self.name.replace('-', '_')}_v{version}"
             table_names.append(f"moz-fx-data-shared-prod.telemetry_live.{table_name}")
         return table_names
 
@@ -50,8 +50,6 @@ def get_legacy_pings() -> Sequence[LegacyPing]:
     schema_versions = _get_ping_schemas()
     for key, value in schema_versions.items():
         pings.append(
-            LegacyPing(
-                name=key, versions=[v.replace(".schema.json", "") for v in value]
-            )
+            LegacyPing(name=key, versions=[int(v.split(".")[1]) for v in value])
         )
     return pings
