@@ -2,6 +2,10 @@ source:
   type: sync.datahub.legacy_source.LegacySource
   config:
     env: "PROD"
+    stateful_ingestion:
+      enabled: true
+
+pipeline_name: "legacy_telemetry_ingestion_pipeline"
 
 sink:
   type: "datahub-rest"

@@ -2,6 +2,10 @@ source:
   type: sync.datahub.glean_source.GleanSource
   config:
     env: "PROD"
+    stateful_ingestion:
+      enabled: true
+
+pipeline_name: "glean_ingestion_pipeline"
 
 sink:
   type: "datahub-rest"
