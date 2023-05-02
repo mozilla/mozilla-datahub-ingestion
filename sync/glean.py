@@ -30,7 +30,9 @@ class GleanPing:
 
     @property
     def bigquery_table_name(self) -> str:
-        return self.name.replace("-", "_") + "_v1"  # TODO: Update this to get the right ping version
+        return (
+            self.name.replace("-", "_") + "_v1"
+        )  # TODO: Update this to get the right ping version
 
     @property
     def bigquery_fully_qualified_names(self) -> Sequence[str]:
