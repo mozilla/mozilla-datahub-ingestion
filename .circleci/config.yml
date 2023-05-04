@@ -15,8 +15,46 @@ jobs:
       - run:
           name: Run tests
           command: python -m pytest
+  glean-source:
+    executor:
+      name: python/default
+      tag: 3.10.10
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Sync Glean Pings
+          command: datahub ingest -c recipes/glean_recipe.dhub.yaml
+  legacytelemetry-source:
+    executor:
+      name: python/default
+      tag: 3.10.10
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Sync Legacy Telemetry Pings
+          command: datahub ingest -c recipes/legacy_recipe.dhub.yaml
 
 workflows:
   ci:
     jobs:
       - unit-tests
+  nightly:  # Sync custom integration sources
+    jobs:
+      - unit-tests
+      - glean-source:
+          requires:
+            - unit-tests
+      - legacytelemetry-source:
+          requires:
+            - unit-tests
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - main
