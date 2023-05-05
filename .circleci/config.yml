@@ -15,33 +15,23 @@ jobs:
       - run:
           name: Run tests
           command: python -m pytest
-  glean-source:
+  datahub-ingest:
     executor:
       name: python/default
       tag: 3.10.10
+    parameters:
+      recipe:
+        type: string
+        description: Repository path to the source recipe
     steps:
       - checkout
       - python/install-packages:
           pkg-manager: pip
-      - &set_env 
-        run:
-          name: "Set environment variables"
-          command: echo 'export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"' >> "$BASH_ENV"
       - run:
-          name: Sync Glean Pings
-          command: datahub ingest -c recipes/glean_recipe.dhub.yaml
-  legacytelemetry-source:
-    executor:
-      name: python/default
-      tag: 3.10.10
-    steps:
-      - checkout
-      - python/install-packages:
-          pkg-manager: pip
-      - *set_env
-      - run:
-          name: Sync Legacy Telemetry Pings
-          command: datahub ingest -c recipes/legacy_recipe.dhub.yaml
+          name: Sync Datahub source
+          command: |
+            export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"
+            datahub ingest -c << parameters.recipe >>
 
 workflows:
   ci:
@@ -50,10 +40,14 @@ workflows:
   nightly:  # Sync custom integration sources
     jobs:
       - unit-tests
-      - glean-source:
+      - datahub-ingest:
+          name: glean-source
+          recipe: recipes/glean_recipe.dhub.yaml
           requires:
             - unit-tests
-      - legacytelemetry-source:
+      - datahub-ingest:
+          name: legacytelemetry-source
+          recipe: recipes/legacy_recipe.dhub.yaml
           requires:
             - unit-tests
     triggers:
