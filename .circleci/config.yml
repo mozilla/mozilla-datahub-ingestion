@@ -23,6 +23,10 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: pip
+      - &set_env 
+        run:
+          name: "Set environment variables"
+          command: echo 'export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"' >> "$BASH_ENV"
       - run:
           name: Sync Glean Pings
           command: datahub ingest -c recipes/glean_recipe.dhub.yaml
@@ -34,6 +38,7 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: pip
+      - *set_env
       - run:
           name: Sync Legacy Telemetry Pings
           command: datahub ingest -c recipes/legacy_recipe.dhub.yaml
