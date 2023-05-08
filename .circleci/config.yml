@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  python: circleci/python@1.5.0
+  python: circleci/python@2.1.1
 
 jobs:
   unit-tests:
@@ -15,8 +15,45 @@ jobs:
       - run:
           name: Run tests
           command: python -m pytest
+  datahub-ingest:
+    executor:
+      name: python/default
+      tag: 3.10.10
+    parameters:
+      recipe:
+        type: string
+        description: Repository path to the source recipe
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Sync Datahub source
+          command: |
+            export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"
+            datahub ingest -c << parameters.recipe >>
 
 workflows:
   ci:
     jobs:
       - unit-tests
+  nightly:  # Sync custom integration sources
+    jobs:
+      - unit-tests
+      - datahub-ingest:
+          name: glean-source
+          recipe: recipes/glean_recipe.dhub.yaml
+          requires:
+            - unit-tests
+      - datahub-ingest:
+          name: legacytelemetry-source
+          recipe: recipes/legacy_recipe.dhub.yaml
+          requires:
+            - unit-tests
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - main
