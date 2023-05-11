@@ -31,7 +31,7 @@ jobs:
           name: Sync Datahub source
           command: |
             export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"
-            datahub ingest -c << parameters.recipe >>
+            python -m datahub ingest -c << parameters.recipe >>
 
 workflows:
   ci:
@@ -45,11 +45,11 @@ workflows:
           recipe: recipes/glean_recipe.dhub.yaml
           requires:
             - unit-tests
-      - datahub-ingest:
-          name: legacytelemetry-source
-          recipe: recipes/legacy_recipe.dhub.yaml
-          requires:
-            - unit-tests
+      # - datahub-ingest:
+      #     name: legacytelemetry-source
+      #     recipe: recipes/legacy_recipe.dhub.yaml
+      #     requires:
+      #       - unit-tests
     triggers:
       - schedule:
           cron: "0 0 * * *"
