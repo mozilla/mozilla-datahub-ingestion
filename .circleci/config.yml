@@ -45,6 +45,11 @@ workflows:
           recipe: recipes/glean_recipe.dhub.yaml
           requires:
             - unit-tests
+      - datahub-ingest:
+          name: legacytelemetry-source
+          recipe: recipes/legacy_recipe.dhub.yaml
+          requires:
+            - unit-tests
     triggers:
       - schedule:
           cron: "0 0 * * *"
