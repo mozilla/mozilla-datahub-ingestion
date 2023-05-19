@@ -3,7 +3,7 @@ source:
   config:
     env: "PROD"
     stateful_ingestion:
-      enabled: true
+      enabled: false
 
 pipeline_name: "legacy_telemetry_ingestion_pipeline"
 

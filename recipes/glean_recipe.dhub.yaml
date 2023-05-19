@@ -3,7 +3,7 @@ source:
   config:
     env: "PROD"
     stateful_ingestion:
-      enabled: true
+      enabled: false
 
 pipeline_name: "glean_ingestion_pipeline"
 
