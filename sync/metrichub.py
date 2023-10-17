@@ -1,12 +1,11 @@
 import re
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 import sqlglot as sqlglot
 from metric_config_parser.config import ConfigCollection
 
 METRIC_HUB_REPO_URL = "https://github.com/mozilla/metric-hub"
-METRIC_HUB_DOCS_URL = "https://mozilla.github.io/metric-hub"
 
 
 @dataclass
@@ -15,7 +14,7 @@ class MetricHubDefinition:
     description: str
     sql_definition: str
     product: str
-    bigquery_tables: List[str]
+    bigquery_tables: Optional[List[str]]
 
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:
@@ -93,18 +92,15 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
             metric_name,
             metric,
         ) in definition.spec.metrics.definitions.items():
-            # TODO: Some metrics don't have data sources, (e.g. ad_click_rate, a chained metric used in jetstream)
-            #  Should we show these in the catalog?
-            if metric.data_source is None:
-                continue
-
-            datasource = config_collection.get_data_source_definition(
-                slug=metric.data_source.name, app_name=definition.platform
-            )
-            tables = [
-                table.format(dataset=datasource.default_dataset)
-                for table in _extract_table_references(datasource.from_expression)
-            ]
+            tables = None  # Some metrics don't have data sources (e.g. ad_click_rate, chained metric used in jetstream)
+            if metric.data_source is not None:
+                datasource = config_collection.get_data_source_definition(
+                    slug=metric.data_source.name, app_name=definition.platform
+                )
+                tables = [
+                    table.format(dataset=datasource.default_dataset)
+                    for table in _extract_table_references(datasource.from_expression)
+                ]
 
             metrics.append(
                 MetricHubDefinition(

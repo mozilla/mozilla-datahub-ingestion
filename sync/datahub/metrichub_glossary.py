@@ -6,7 +6,7 @@ from typing import Dict, List
 import yaml
 
 from sync.metrichub import (
-    METRIC_HUB_DOCS_URL,
+    METRIC_HUB_REPO_URL,
     get_metric_definitions,
     MetricHubDefinition,
 )
@@ -49,7 +49,7 @@ def main() -> None:
     glossary = {
         "version": 1,
         "source": "Metric-Hub",
-        "url": METRIC_HUB_DOCS_URL,
+        "url": METRIC_HUB_REPO_URL,
         "owners": [],
         "nodes": [
             {
