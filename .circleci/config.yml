@@ -23,10 +23,15 @@ jobs:
       recipe:
         type: string
         description: Repository path to the source recipe
+      before-ingest:
+        type: steps
+        description: Steps to be executed directly before the datahub-ingest command
+        default: []
     steps:
       - checkout
       - python/install-packages:
           pkg-manager: pip
+      - steps: << parameters.before-ingest >>
       - run:
           name: Sync Datahub source
           command: |
@@ -50,6 +55,13 @@ workflows:
           recipe: recipes/legacy_recipe.dhub.yaml
           requires:
             - unit-tests
+      - datahub-ingest:
+          name: metrichub-glossary-source
+          recipe: recipes/metrichub_recipe.dhub.yaml
+          before-ingest:
+            - run:
+                name: Generate Metric-Hub Glossary YAML
+                command: python -m sync.datahub.metrichub_glossary
     triggers:
       - schedule:
           cron: "0 0 * * *"

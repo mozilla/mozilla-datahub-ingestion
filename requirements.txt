@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-rest,looker,lookml]==0.11.0
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.11.0
     # via -r requirements.in
 acryl-sqlglot==18.0.2.dev15
     # via acryl-datahub
@@ -32,6 +32,7 @@ attrs==22.1.0
     #   cattrs
     #   jsonschema
     #   looker-sdk
+    #   mozilla-metric-config-parser
 avro==1.10.2
     # via
     #   acryl-datahub
@@ -53,7 +54,9 @@ cached-property==1.5.2
 cachetools==5.2.0
     # via google-auth
 cattrs==22.1.0
-    # via looker-sdk
+    # via
+    #   looker-sdk
+    #   mozilla-metric-config-parser
 certifi==2022.6.15
     # via
     #   requests
@@ -73,6 +76,7 @@ click==8.1.6
     #   black
     #   click-default-group
     #   great-expectations
+    #   mozilla-metric-config-parser
     #   pip-tools
 click-default-group==1.2.2
     # via acryl-datahub
@@ -106,6 +110,8 @@ executing==0.9.1
     # via stack-data
 expandvars==0.9.0
     # via acryl-datahub
+faker==19.9.0
+    # via polyfactory
 fastjsonschema==2.16.1
     # via nbformat
 flake8==5.0.4
@@ -119,7 +125,9 @@ future==0.18.2
 gitdb==4.0.10
     # via gitpython
 gitpython==3.1.30
-    # via acryl-datahub
+    # via
+    #   acryl-datahub
+    #   mozilla-metric-config-parser
 google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-appengine-logging
@@ -210,6 +218,7 @@ jinja2==3.0.3
     # via
     #   altair
     #   great-expectations
+    #   mozilla-metric-config-parser
     #   nbconvert
     #   notebook
 jsonpatch==1.32
@@ -267,6 +276,10 @@ mixpanel==4.10.0
     # via acryl-datahub
 more-itertools==8.14.0
     # via acryl-datahub
+mozilla-metric-config-parser==2023.9.4
+    # via -r requirements.in
+mozilla-nimbus-schemas==2023.9.3
+    # via mozilla-metric-config-parser
 multidict==6.0.4
     # via
     #   aiohttp
@@ -337,6 +350,8 @@ platformdirs==2.5.2
     # via black
 pluggy==1.0.0
     # via pytest
+polyfactory==2.9.0
+    # via mozilla-nimbus-schemas
 progressbar2==4.0.0
     # via acryl-datahub
 prometheus-client==0.14.1
@@ -385,10 +400,11 @@ pycodestyle==2.9.1
     # via flake8
 pycparser==2.21
     # via cffi
-pydantic==1.9.2
+pydantic==1.10.13
     # via
     #   acryl-datahub
     #   great-expectations
+    #   mozilla-nimbus-schemas
 pyflakes==2.5.0
     # via flake8
 pygments==2.12.0
@@ -406,6 +422,7 @@ pytest==7.4.0
 python-dateutil==2.8.2
     # via
     #   acryl-datahub
+    #   faker
     #   google-cloud-bigquery
     #   great-expectations
     #   jupyter-client
@@ -416,6 +433,7 @@ pytz==2022.2
     # via
     #   avro-gen3
     #   great-expectations
+    #   mozilla-metric-config-parser
     #   pandas
 pytz-deprecation-shim==0.1.0.post0
     # via tzlocal
@@ -439,6 +457,7 @@ requests==2.28.1
     #   great-expectations
     #   looker-sdk
     #   mixpanel
+    #   mozilla-metric-config-parser
     #   requests-file
 requests-file==1.5.1
     # via acryl-datahub
@@ -496,7 +515,9 @@ terminado==0.15.0
 tinycss2==1.1.1
     # via nbconvert
 toml==0.10.2
-    # via acryl-datahub
+    # via
+    #   acryl-datahub
+    #   mozilla-metric-config-parser
 tomli==2.0.1
     # via
     #   black
@@ -532,6 +553,7 @@ typing-extensions==4.3.0
     #   acryl-datahub
     #   great-expectations
     #   looker-sdk
+    #   polyfactory
     #   pydantic
     #   typing-inspect
 typing-inspect==0.7.1

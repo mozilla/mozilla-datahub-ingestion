@@ -4,3 +4,4 @@ venv/
 *.pyc
 .probe_cache/
 .python-version
+metric_hub_glossary.yaml

@@ -1,7 +1,8 @@
 pip-tools==7.3.0
-acryl-datahub[datahub-rest,bigquery,looker,lookml]==0.11.0
+acryl-datahub[datahub-rest,bigquery,looker,lookml,datahub-business-glossary]==0.11.0
 click==8.1.6
 black==22.6.0
 flake8==5.0.4
 yamllint==1.27.1
 pytest==7.4.0
+mozilla-metric-config-parser==2023.9.4
