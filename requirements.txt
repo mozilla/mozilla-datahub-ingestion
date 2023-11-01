@@ -5,7 +5,9 @@
 #    pip-compile
 #
 acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.11.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   acryl-datahub
 acryl-sqlglot==18.0.2.dev15
     # via acryl-datahub
 aiohttp==3.8.3
@@ -39,7 +41,7 @@ backcall==0.2.0
     # via ipython
 beautifulsoup4==4.11.1
     # via nbconvert
-black==22.6.0
+black==22.12.0
     # via -r requirements.in
 bleach==5.0.1
     # via nbconvert
@@ -126,6 +128,7 @@ gitpython==3.1.30
     #   mozilla-metric-config-parser
 google-api-core[grpc]==2.11.0
     # via
+    #   google-api-core
     #   google-cloud-appengine-logging
     #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
