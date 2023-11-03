@@ -563,7 +563,7 @@ tzlocal==4.2
     # via
     #   avro-gen3
     #   great-expectations
-urllib3==1.26.11
+urllib3==1.26.18
     # via
     #   great-expectations
     #   mixpanel
