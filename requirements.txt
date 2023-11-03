@@ -55,7 +55,7 @@ cattrs==22.1.0
     # via
     #   looker-sdk
     #   mozilla-metric-config-parser
-certifi==2022.6.15
+certifi==2023.7.22
     # via
     #   requests
     #   sentry-sdk
