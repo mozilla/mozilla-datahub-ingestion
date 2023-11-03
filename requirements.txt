@@ -122,7 +122,7 @@ future==0.18.2
     # via sqlalchemy-bigquery
 gitdb==4.0.10
     # via gitpython
-gitpython==3.1.30
+gitpython==3.1.37
     # via
     #   acryl-datahub
     #   mozilla-metric-config-parser
