@@ -177,7 +177,7 @@ greenlet==1.1.2
     # via acryl-datahub
 grpc-google-iam-v1==0.12.4
     # via google-cloud-logging
-grpcio==1.47.0
+grpcio==1.53.0
     # via
     #   google-api-core
     #   google-cloud-bigquery
@@ -480,7 +480,6 @@ six==1.16.0
     #   avro-gen3
     #   bleach
     #   google-auth
-    #   grpcio
     #   mixpanel
     #   python-dateutil
     #   requests-file
