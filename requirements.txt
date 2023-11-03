@@ -82,7 +82,7 @@ click-spinner==0.1.10
     # via acryl-datahub
 colorama==0.4.5
     # via great-expectations
-cryptography==37.0.4
+cryptography==41.0.4
     # via great-expectations
 debugpy==1.6.2
     # via ipykernel
