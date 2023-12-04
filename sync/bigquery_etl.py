@@ -2,7 +2,7 @@ import collections
 import re
 from pathlib import Path
 from typing import Dict
-
+import logging
 import requests
 from io import BytesIO
 import tarfile
@@ -28,12 +28,14 @@ REPO_ARCHIVE = "https://github.com/mozilla/bigquery_etl/archive/generated-sql.ta
 REPO_URL = "https://github.com/mozilla/bigquery-etl/blob/generated-sql/sql"
 WTMO_URL = "https://workflow.telemetry.mozilla.org/dags"
 
+logger = logging.getLogger(__name__)
+
 
 def get_bigquery_etl_table_references() -> Dict:
     table_references = collections.defaultdict(dict)
-    # {qualified_name: {bigquery_etl_url: ..., wtmo_url: ...}}
+    # dictionary shape: {qualified_name: {bigquery_etl_url: ..., wtmo_url: ...}}
 
-    print("Fetching metadata from GitHub...")
+    logger.info("Fetching metadata from GitHub...")
 
     repo_content = BytesIO(requests.get(REPO_ARCHIVE).content)
     with tarfile.open(fileobj=repo_content, mode="r|gz") as tar:

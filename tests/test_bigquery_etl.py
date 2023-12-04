@@ -15,7 +15,7 @@ class MockApiResponse:
 
 @patch("requests.get")
 def test_get_legacy_pings(mock_get):
-    with (tempfile.NamedTemporaryFile(suffix=".tar.gz") as fp,):
+    with (tempfile.NamedTemporaryFile(suffix=".tar.gz") as fp):
         with tarfile.open(fileobj=fp, mode="w:gz") as tar:
 
             tar.add(
