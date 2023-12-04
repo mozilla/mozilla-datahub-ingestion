@@ -35,5 +35,5 @@ def test_get_legacy_pings(mock_get):
     )
     assert (
         data["moz-fx-data-shared-prod.test_dataset.test_table"]["wtmo_url"]
-        == "https://workflow.telemetry.mozilla.org/dags/test_tag/grid"
+        == "https://workflow.telemetry.mozilla.org/dags/test_dag/grid"
     )

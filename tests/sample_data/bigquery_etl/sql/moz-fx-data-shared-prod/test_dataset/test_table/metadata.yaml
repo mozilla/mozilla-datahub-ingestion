@@ -3,4 +3,4 @@ description: Test Table description
 owners:
 - anicholson@mozilla.com
 scheduling:
-  dag_name: test_tag
+  dag_name: test_dag
