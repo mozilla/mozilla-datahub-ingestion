@@ -1,0 +1,6 @@
+friendly_name: Test Table
+description: Test Table description
+owners:
+- anicholson@mozilla.com
+scheduling:
+  dag_name: test_dag

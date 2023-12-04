@@ -30,12 +30,8 @@ from datahub.ingestion.api.source_helpers import (
     auto_workunit_reporter,
 )
 
+from sync.datahub.utils import get_current_timestamp
 from sync.glean import get_glean_pings
-
-
-def _get_current_timestamp() -> AuditStampClass:
-    now = int(time.time() * 1000)  # milliseconds since epoch
-    return AuditStampClass(time=now, actor="urn:li:corpuser:ingestion")
 
 
 class GleanSourceConfig(StatefulIngestionConfigBase):
@@ -89,7 +85,7 @@ class GleanSource(StatefulIngestionSourceBase):
                         InstitutionalMemoryMetadataClass(
                             url=glean_ping.glean_dictionary_url,
                             description="Glean Dictionary Ping Documentation",
-                            createStamp=_get_current_timestamp(),
+                            createStamp=get_current_timestamp(),
                         )
                     ],
                 ),

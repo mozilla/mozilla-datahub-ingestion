@@ -5,3 +5,4 @@ venv/
 .probe_cache/
 .python-version
 metric_hub_glossary.yaml
+bigquery-etl-generated-sql/
