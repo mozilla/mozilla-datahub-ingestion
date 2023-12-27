@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Sequence, Dict
@@ -7,6 +8,8 @@ import tarfile
 from io import BytesIO
 
 SCHEMA_URL = "https://github.com/mozilla-services/mozilla-pipeline-schemas/archive/generated-schemas.tar.gz"
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -30,7 +33,7 @@ def _get_ping_schemas() -> Dict[str, Sequence[str]]:
     Example:
     {'account-ecosystem': ['account-ecosystem.4.schema.json'], 'android-anr-report': ['android-anr-report.1.schema.json', 'android-anr-report.2.schema.json'], 'anonymous': ['anonymous.4.schema.json']}
     """
-    print("Fetching schemas from GitHub...")
+    logger.info("Fetching schemas from GitHub...")
     schemas = requests.get(SCHEMA_URL)
     schema_file = BytesIO(schemas.content)
 
