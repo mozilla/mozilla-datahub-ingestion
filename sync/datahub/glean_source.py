@@ -1,35 +1,27 @@
-import time
-from typing import Iterable, Optional
+from typing import Iterable, Optional, List
 
 from datahub.ingestion.api.common import PipelineContext
 from datahub.ingestion.api.workunit import MetadataWorkUnit
+from datahub.ingestion.api.source import SourceReport, MetadataWorkUnitProcessor
 from datahub.emitter.mcp import MetadataChangeProposalWrapper, ChangeTypeClass
 import datahub.emitter.mce_builder as builder
 from datahub.metadata.schema_classes import (
     BrowsePathsClass,
     InstitutionalMemoryClass,
     InstitutionalMemoryMetadataClass,
-    AuditStampClass,
     DatasetPropertiesClass,
     SubTypesClass,
     UpstreamLineageClass,
     UpstreamClass,
 )
-from datahub.ingestion.source.state.entity_removal_state import GenericCheckpointState
 from datahub.ingestion.source.state.stale_entity_removal_handler import (
     StatefulStaleMetadataRemovalConfig,
-    StaleEntityRemovalSourceReport,
     StaleEntityRemovalHandler,
 )
 from datahub.ingestion.source.state.stateful_ingestion_base import (
     StatefulIngestionConfigBase,
     StatefulIngestionSourceBase,
 )
-from datahub.ingestion.api.source_helpers import (
-    auto_stale_entity_removal,
-    auto_workunit_reporter,
-)
-
 from sync.datahub.utils import get_current_timestamp
 from sync.glean import get_glean_pings
 
@@ -40,44 +32,35 @@ class GleanSourceConfig(StatefulIngestionConfigBase):
 
 
 class GleanSource(StatefulIngestionSourceBase):
-
-    source_config: GleanSourceConfig
-    report: StaleEntityRemovalSourceReport
-
+    """Source for Glean Ingestion."""
     def __init__(self, config: GleanSourceConfig, ctx: PipelineContext):
         super().__init__(config, ctx)
-        self.source_config = config
+        self.config = config
         self.platform = "Glean"
-        self.report = StaleEntityRemovalSourceReport()
 
-        self.stale_entity_removal_handler = StaleEntityRemovalHandler(
+        self.stale_entity_removal_handler = StaleEntityRemovalHandler.create(
             source=self,
-            config=self.source_config,
-            state_type_class=GenericCheckpointState,
-            pipeline_name=self.ctx.pipeline_name,
-            run_id=self.ctx.run_id,
+            config=self.config,
+            ctx=self.ctx,
         )
-
-    def get_platform_instance_id(self) -> str:
-        return f"{self.platform}"
 
     @classmethod
     def create(cls, config_dict, ctx):
         config = GleanSourceConfig.parse_obj(config_dict)
         return cls(config, ctx)
 
-    def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return auto_stale_entity_removal(
-            self.stale_entity_removal_handler,
-            auto_workunit_reporter(self.report, self.get_workunits_internal()),
-        )
+    def get_workunit_processors(self) -> List[Optional[MetadataWorkUnitProcessor]]:
+        return [
+            *super().get_workunit_processors(),
+            self.stale_entity_removal_handler.workunit_processor,
+        ]
 
     def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
         for glean_ping in get_glean_pings():
             glean_qualified_urn = builder.make_dataset_urn(
                 platform=self.platform,
                 name=glean_ping.qualified_name,
-                env=self.source_config.env,
+                env=self.config.env,
             )
             glean_ping_aspects = [
                 InstitutionalMemoryClass(
@@ -95,7 +78,7 @@ class GleanSource(StatefulIngestionSourceBase):
                 SubTypesClass(typeNames=["Ping"]),
                 BrowsePathsClass(
                     paths=[
-                        f"/{self.source_config.env.lower()}/glean/{glean_ping.app_name}"
+                        f"/{self.config.env.lower()}/glean/{glean_ping.app_name}"
                     ]
                 ),
             ]
@@ -118,7 +101,7 @@ class GleanSource(StatefulIngestionSourceBase):
                     entityUrn=builder.make_dataset_urn(
                         platform="bigquery",
                         name=qualified_table_name,
-                        env=self.source_config.env,
+                        env=self.config.env,
                     ),
                     aspectName="upstreamLineage",
                     aspect=upstream_lineage,
@@ -130,5 +113,5 @@ class GleanSource(StatefulIngestionSourceBase):
                 wu = mcp.as_workunit()
                 yield wu
 
-    def get_report(self) -> StaleEntityRemovalSourceReport:
+    def get_report(self) -> SourceReport:
         return self.report
