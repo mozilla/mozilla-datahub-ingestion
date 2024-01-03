@@ -62,6 +62,8 @@ workflows:
             - run:
                 name: Generate Metric-Hub Glossary YAML
                 command: python -m sync.datahub.metrichub_glossary
+          requires:
+            - unit-tests
       - datahub-ingest:
           name: bigquery-etl-source
           recipe: recipes/bigquery_etl_recipe.dhub.yaml
