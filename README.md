@@ -2,6 +2,8 @@
 
 This repository contains code for sending metadata from Mozilla-specific platforms to a DataHub instance.
 
+The production instance is https://mozilla.acryl.io 
+
 ## Setting up a new DataHub instance
 
 The recipes that handle Looker and BigQuery metadata are managed via UI Ingestion and stored by SRE. Ask in 
@@ -14,6 +16,13 @@ To bootstrap the custom platforms we ingest metadata for, run the `platform_reci
 All other recipes can be found in the `recipes` directory and can be run similarly using the `datahub ingest` command.
 
 ## Development
+
+```
+├── recipes (.dhub.yaml recipe files - https://datahubproject.io/docs/metadata-ingestion#recipes)
+├── sync (source code for metadata fetching and ingestion)
+│   ├── datahub (source code for DataHub utils and custom Ingestion Sources - https://datahubproject.io/docs/metadata-ingestion/adding-source)
+└── tests (source code and sample data for tests)
+```
 
 To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/).
 
@@ -46,7 +55,3 @@ Running `make format` will auto-format the code according to the
 DataHub - https://datahubproject.io/
 
 Recipe - https://datahubproject.io/docs/metadata-ingestion#recipes
-
-TODO: 
-- Architecture diagram
-- Reference copy on metadata
