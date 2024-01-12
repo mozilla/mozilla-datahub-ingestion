@@ -62,7 +62,9 @@ def _extract_table_references(sql: str) -> List[str]:
     query_statements = sqlglot.parse(sql, read="bigquery")
 
     # If there's only one statement, and it's a Column token, it's the table name:
-    if len(query_statements) == 1 and type(query_statements[0]) == sqlglot.exp.Column:
+    if len(query_statements) == 1 and isinstance(
+        query_statements[0], sqlglot.exp.Column
+    ):
         return [sql.replace("`", "")]
 
     creates, tables = set(), set()
@@ -92,7 +94,9 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
             metric_name,
             metric,
         ) in definition.spec.metrics.definitions.items():
-            tables = None  # Some metrics don't have data sources (e.g. ad_click_rate, chained metric used in jetstream)
+            # Some metrics don't have data sources
+            # (e.g. ad_click_rate, chained metric used in jetstream)
+            tables = None
             if metric.data_source is not None:
                 datasource = config_collection.get_data_source_definition(
                     slug=metric.data_source.name, app_name=definition.platform

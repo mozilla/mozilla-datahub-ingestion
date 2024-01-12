@@ -4,6 +4,17 @@ orbs:
   python: circleci/python@2.1.1
 
 jobs:
+  lint:
+    executor:
+      name: python/default
+      tag: 3.10.10
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+      - run:
+          name: Run linters
+          command: make lint
   unit-tests:
     executor:
       name: python/default
@@ -41,7 +52,10 @@ jobs:
 workflows:
   ci:
     jobs:
-      - unit-tests
+      - lint
+      - unit-tests:
+          requires:
+            - lint
   nightly:  # Sync custom integration sources
     jobs:
       - unit-tests

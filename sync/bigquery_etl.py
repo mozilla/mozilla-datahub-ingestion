@@ -21,7 +21,7 @@ SUPPORTED_PROJECTS = {
     "moz-fx-data-marketing-prod",
 }
 VALID_TABLE_RE = re.compile(
-    rf"{FILE_PREFIX}\/({'|'.join(SUPPORTED_PROJECTS)})\/([a-z0-9_-]+)\/([a-z0-9_-]+)\/({'|'.join(QUERY_FILES)}|{METADATA_FILE})"
+    rf"{FILE_PREFIX}\/({'|'.join(SUPPORTED_PROJECTS)})\/([a-z0-9_-]+)\/([a-z0-9_-]+)\/({'|'.join(QUERY_FILES)}|{METADATA_FILE})"  # noqa
 )
 
 REPO_ARCHIVE = "https://github.com/mozilla/bigquery_etl/archive/generated-sql.tar.gz"

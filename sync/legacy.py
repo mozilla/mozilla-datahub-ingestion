@@ -6,7 +6,7 @@ import requests
 import tarfile
 from io import BytesIO
 
-SCHEMA_URL = "https://github.com/mozilla-services/mozilla-pipeline-schemas/archive/generated-schemas.tar.gz"
+SCHEMA_URL = "https://github.com/mozilla-services/mozilla-pipeline-schemas/archive/generated-schemas.tar.gz"  # noqa: E501
 
 
 @dataclass
@@ -25,10 +25,15 @@ class LegacyPing:
 
 def _get_ping_schemas() -> Dict[str, Sequence[str]]:
     """
-    Fetches the latest version of the schema tarball from GitHub and returns a dict of ping names and their schema versions.
+    Fetches the latest version of the schema tarball from GitHub and returns a dict of ping names and their schema
+    versions.
 
     Example:
-    {'account-ecosystem': ['account-ecosystem.4.schema.json'], 'android-anr-report': ['android-anr-report.1.schema.json', 'android-anr-report.2.schema.json'], 'anonymous': ['anonymous.4.schema.json']}
+    {
+        'account-ecosystem': ['account-ecosystem.4.schema.json'],
+        'android-anr-report': ['android-anr-report.1.schema.json', 'android-anr-report.2.schema.json'],  # noqa: E501
+        'anonymous': ['anonymous.4.schema.json'],
+    }
     """
     print("Fetching schemas from GitHub...")
     schemas = requests.get(SCHEMA_URL)

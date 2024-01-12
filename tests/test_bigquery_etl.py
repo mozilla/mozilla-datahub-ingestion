@@ -31,7 +31,7 @@ def test_get_legacy_pings(mock_get):
     assert "moz-fx-data-shared-prod.test_dataset.test_table" in data
     assert (
         data["moz-fx-data-shared-prod.test_dataset.test_table"]["bigquery_etl_url"]
-        == "https://github.com/mozilla/bigquery-etl/blob/generated-sql/sql/moz-fx-data-shared-prod/test_dataset/test_table/query.sql"
+        == "https://github.com/mozilla/bigquery-etl/blob/generated-sql/sql/moz-fx-data-shared-prod/test_dataset/test_table/query.sql"  # noqa: E501
     )
     assert (
         data["moz-fx-data-shared-prod.test_dataset.test_table"]["wtmo_url"]
