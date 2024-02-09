@@ -69,7 +69,7 @@ class BigQueryEtlSource(Source):
                 continue
 
             mcp = MetadataChangeProposalWrapper(
-                changeType=ChangeTypeClass.UPSERT,  # Should probably be UPDATE but this isn't supported
+                changeType=ChangeTypeClass.UPSERT,  # Should be UPDATE but it isn't supported
                 entityUrn=bigquery_qualified_urn,
                 aspect=InstitutionalMemoryClass(elements=link_elements),
             )

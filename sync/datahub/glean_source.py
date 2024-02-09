@@ -1,4 +1,3 @@
-import time
 from typing import Iterable, Optional
 
 from datahub.ingestion.api.common import PipelineContext
@@ -9,7 +8,6 @@ from datahub.metadata.schema_classes import (
     BrowsePathsClass,
     InstitutionalMemoryClass,
     InstitutionalMemoryMetadataClass,
-    AuditStampClass,
     DatasetPropertiesClass,
     SubTypesClass,
     UpstreamLineageClass,

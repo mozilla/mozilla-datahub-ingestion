@@ -78,7 +78,7 @@ def test_get_glean_pings(mock_get):
                 "reasons": {},
                 "reflog-index": {"first": 100, "last": 0},
                 "send_if_empty": False,
-                "source_url": "https://github.com/fake-organization/fake-repository/blob/aaaaaaaaa/test_app/app/pings.yaml#L1",
+                "source_url": "https://github.com/fake-organization/fake-repository/blob/aaaaaaaaa/test_app/app/pings.yaml#L1",  # noqa: E501
                 "name": "test_ping",
                 "origin": "testorigin",
                 "date_first_seen": "2000-01-01 00:00:00",

@@ -54,7 +54,7 @@ def main() -> None:
         "nodes": [
             {
                 "name": "Metric Hub",
-                "description": "Central hub for metric definitions that are considered the source of truth.",
+                "description": "Central hub for metric definitions that are considered the source of truth.",  # noqa: E501
                 "nodes": product_nodes,
             }
         ],
