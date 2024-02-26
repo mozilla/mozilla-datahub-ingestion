@@ -414,7 +414,7 @@ pyparsing==2.4.7
     #   packaging
 pyrsistent==0.18.1
     # via jsonschema
-pytest==8.0.1
+pytest==8.0.2
     # via -r requirements.in
 python-dateutil==2.8.2
     # via
