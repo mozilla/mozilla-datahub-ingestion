@@ -26,6 +26,13 @@ All other recipes can be found in the `recipes` directory and can be run similar
 
 To install a local instance of DataHub, see [DataHub's Quickstart guide](https://datahubproject.io/docs/quickstart/).
 
+Start a DataHub instance locally: Launch Docker Desktop, then run `datahub docker quickstart`
+The initial run will install various packages and can take well over 30 minutes. DataHub will keep running in the background.
+
+Ingest data from a specific source: `DATAHUB_GMS_URL="http://localhost:8080" DATAHUB_GMS_TOKEN=None datahub ingest -c recipes/<ingestion_source>.dhub.yaml`.
+
+The local DataHub instance can by default be accessed via: http://localhost:9002/
+
 ### Prerequisites 
 
 - [Python](https://www.python.org/) (version 3.10+)
