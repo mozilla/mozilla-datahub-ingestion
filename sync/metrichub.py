@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import sqlglot as sqlglot
 from metric_config_parser.config import ConfigCollection
+from metric_config_parser.metric import MetricLevel
 
 METRIC_HUB_REPO_URL = "https://github.com/mozilla/metric-hub"
 
@@ -14,7 +15,10 @@ class MetricHubDefinition:
     description: str
     sql_definition: str
     product: str
+    owners: Optional[List[str]]
+    level: Optional[MetricLevel]
     bigquery_tables: Optional[List[str]]
+    deprecated: bool = False
 
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:
@@ -110,6 +114,11 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                 MetricHubDefinition(
                     name=metric.name,
                     description=metric.description or "",
+                    owners=[metric.owner]
+                    if isinstance(metric.owner, str)
+                    else metric.owner,
+                    level=metric.level.value if metric.level else None,
+                    deprecated=metric.deprecated or False,
                     sql_definition=metric.select_expression,
                     product=definition.platform,
                     bigquery_tables=tables,
