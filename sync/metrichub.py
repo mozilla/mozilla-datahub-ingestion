@@ -20,6 +20,23 @@ class MetricHubDefinition:
     bigquery_tables: Optional[List[str]]
     deprecated: bool = False
 
+    @property
+    def display_name(self) -> str:
+        metric_name = self.name
+
+        if self.deprecated:
+            metric_name += " ⚠️"
+
+        if self.level:
+            if self.level == MetricLevel.GOLD:
+                metric_name += " 🥇"
+            elif self.level == MetricLevel.SILVER:
+                metric_name += " 🥈"
+            elif self.level == MetricLevel.BRONZE:
+                metric_name += " 🥉"
+
+        return metric_name
+
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:
     """
