@@ -8,6 +8,16 @@ from metric_config_parser.config import ConfigCollection
 from metric_config_parser.metric import MetricLevel
 
 METRIC_HUB_REPO_URL = "https://github.com/mozilla/metric-hub"
+LOOKER_METRICS_URL = "https://github.com/mozilla/metric-hub/tree/main/looker"
+
+
+@dataclass
+class MetricStatistic:
+    name: str
+
+    @property
+    def title_cased_name(self) -> str:
+        return self.name.replace("_", " ").title()
 
 
 @dataclass
@@ -19,6 +29,8 @@ class MetricHubDefinition:
     owners: Optional[List[str]]
     level: Optional[MetricLevel]
     bigquery_tables: Optional[List[str]]
+    data_source: Optional[str]
+    statistics: Optional[List[MetricStatistic]]
     deprecated: bool = False
 
     @property
@@ -41,6 +53,10 @@ class MetricHubDefinition:
     @property
     def urn(self) -> str:
         return f"{make_term_urn(f'Metric Hub.{self.product}.{self.name}')}"
+
+    @property
+        def title_cased_name(self) -> str:
+            return self.name.replace("_", " ").title()
 
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:
@@ -112,7 +128,9 @@ def _extract_table_references(sql: str) -> List[str]:
 
 
 def get_metric_definitions() -> List[MetricHubDefinition]:
-    config_collection = ConfigCollection.from_github_repo(METRIC_HUB_REPO_URL)
+    config_collection = ConfigCollection.from_github_repos(
+        [METRIC_HUB_REPO_URL, LOOKER_METRICS_URL]
+    )
 
     metrics = []
     for definition in config_collection.definitions:
@@ -123,6 +141,7 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
             # Some metrics don't have data sources
             # (e.g. ad_click_rate, chained metric used in jetstream)
             tables = None
+            datasource = None
             if metric.data_source is not None:
                 datasource = config_collection.get_data_source_definition(
                     slug=metric.data_source.name, app_name=definition.platform
@@ -131,6 +150,11 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                     table.format(dataset=datasource.default_dataset)
                     for table in _extract_table_references(datasource.from_expression)
                 ]
+
+            statistics = []
+            if metric.statistics is not None:
+                for statistic_name, _ in metric.statistics.items():
+                    statistics.append(MetricStatistic(name=statistic_name))
 
             metrics.append(
                 MetricHubDefinition(
@@ -144,6 +168,8 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                     sql_definition=metric.select_expression,
                     product=definition.platform,
                     bigquery_tables=tables,
+                    statistics=statistics,
+                    data_source=datasource.name if datasource else None,
                 )
             )
 
