@@ -1,4 +1,5 @@
 import re
+from datahub.emitter.mce_builder import make_term_urn
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -36,6 +37,10 @@ class MetricHubDefinition:
                 metric_name += " 🥉"
 
         return metric_name
+
+    @property
+    def urn(self) -> str:
+        return f"{make_term_urn(f'Metric Hub.{self.product}.{self.name}')}"
 
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:
