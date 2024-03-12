@@ -13,6 +13,15 @@ LOOKER_METRICS_URL = "https://github.com/mozilla/metric-hub/tree/main/looker"
 
 @dataclass
 class MetricStatistic:
+    """
+    Defines and aggregation of a metric across a specific population.
+
+    Metric-hub allows users to specify statistics on top of metrics.
+    Statistics summarize the distribution of metrics within a specific
+    time frame and population segment. These statistics allow for basic
+    analyses of a metric and are represented in Looker as measures.
+    """
+
     name: str
 
     @property
@@ -55,8 +64,8 @@ class MetricHubDefinition:
         return f"{make_term_urn(f'Metric Hub.{self.product}.{self.name}')}"
 
     @property
-        def title_cased_name(self) -> str:
-            return self.name.replace("_", " ").title()
+    def title_cased_name(self) -> str:
+        return self.name.replace("_", " ").title()
 
 
 def _raw_table_name(table: sqlglot.exp.Table) -> str:

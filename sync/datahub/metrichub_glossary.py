@@ -31,7 +31,7 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
     if metric.sql_definition:
         metric_content += f"SQL Definition:\n```{metric.sql_definition.strip()}```\n\n"
 
-    if metric.statistics and len(metric.statistics) > 0:
+    if metric.statistics:
         metric_content += "Explore this metric in Looker:\n"
         metric_content += "\n".join(_get_looker_statistics_links(metric))
 
