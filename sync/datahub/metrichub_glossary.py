@@ -32,6 +32,7 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
         metric_content += f"SQL Definition:\n```{metric.sql_definition.strip()}```"
 
     return {
+        "id": metric.urn,
         "name": metric.display_name,
         "description": metric_content,
         "owners": {"users": metric.owners},
