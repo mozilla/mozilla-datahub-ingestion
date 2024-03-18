@@ -68,7 +68,12 @@ def _get_looker_statistics_links(metric: MetricHubDefinition) -> List[str]:
     for statistic in metric.statistics:
         if metric.data_source is not None:
             explore = f"metric_definitions_{metric.data_source}"
-            fields = ",".join(["submission_date", f"{metric.name}_{statistic.name}"])
+            fields = ",".join(
+                [
+                    f"{explore}.submission_date",
+                    f"{explore}.{metric.name}_{statistic.name}",
+                ]
+            )
             title = f"{metric.title_cased_name} {statistic.title_cased_name}"
             links.append(
                 f"[{title}]({url}/{metric.product}/{explore}?fields={fields}&toggle=vis)"
