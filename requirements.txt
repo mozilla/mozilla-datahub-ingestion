@@ -416,7 +416,7 @@ pyproject-hooks==1.0.0
     #   pip-tools
 pyrsistent==0.18.1
     # via jsonschema
-pytest==8.1.0
+pytest==8.1.1
     # via -r requirements.in
 python-dateutil==2.8.2
     # via
