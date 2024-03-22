@@ -5,9 +5,7 @@
 #    pip-compile
 #
 acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.11.0
-    # via
-    #   -r requirements.in
-    #   acryl-datahub
+    # via -r requirements.in
 acryl-sqlglot==18.0.2.dev15
     # via acryl-datahub
 aiohttp==3.9.2
@@ -126,7 +124,6 @@ gitpython==3.1.41
     #   mozilla-metric-config-parser
 google-api-core[grpc]==2.11.0
     # via
-    #   google-api-core
     #   google-cloud-appengine-logging
     #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
@@ -273,7 +270,7 @@ mixpanel==4.10.0
     # via acryl-datahub
 more-itertools==8.14.0
     # via acryl-datahub
-mozilla-metric-config-parser==2024.3.1
+mozilla-metric-config-parser==2024.3.2
     # via -r requirements.in
 mozilla-nimbus-schemas==2023.9.3
     # via mozilla-metric-config-parser
