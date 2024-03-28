@@ -47,7 +47,7 @@ The local DataHub instance can by default be accessed via: http://localhost:9002
 
 2. Activate the virtual environment: `$ source venv/bin/activate`
 
-3. Install project dependencies: `$ pip install -r requirements.txt`. This should include the [DataHub CLI](https://datahubproject.io/docs/quickstart/).
+3. Install project dependencies: `$ pip install -r requirements.txt`. If this fails, you can install the requirements automatically line-by-line (letting the failing ones fail): `pip freeze | sed -e '/^\s*#.*$/d' -e '/^\s*$/d' | xargs -n 1 pip install (step 2a if 2 fails)`. This should include the [DataHub CLI](https://datahubproject.io/docs/quickstart/).
 
 4. Install the module locally: `$ pip install -e .`
 
