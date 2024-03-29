@@ -1,6 +1,7 @@
 """Builds the metric-hub glossary YAML file for syncing to DataHub."""
 import itertools
 import operator
+from os import linesep
 from typing import Dict, List
 from metric_config_parser.metric import MetricLevel
 from datahub.emitter.mce_builder import make_term_urn
@@ -23,16 +24,16 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
         metric_content += "⚠️ **This metric has been deprecated**\n\n"
 
     if metric.level:
-        metric_content += f"Metric Level: {_get_metric_level_link_text(metric.level)}"
+        metric_content += f"**Metric Level:** {_get_metric_level_link_text(metric.level)}"
 
     if metric.description:
-        metric_content += f"_{metric.description.strip()}_\n\n"
+        metric_content += f"{metric.description.strip().replace(linesep, ' ')}\n\n"
 
     if metric.sql_definition:
-        metric_content += f"SQL Definition:\n```{metric.sql_definition.strip()}```\n\n"
+        metric_content += f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
 
     if metric.statistics:
-        metric_content += "Explore this metric in Looker:\n"
+        metric_content += "**Explore this metric in Looker:**\n"
         metric_content += "\n".join(_get_looker_statistics_links(metric))
 
     return {
