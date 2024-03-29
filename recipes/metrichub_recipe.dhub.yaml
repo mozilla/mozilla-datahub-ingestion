@@ -1,4 +1,4 @@
-# Build the YAML configuration file before running the ingestion: `python3 -m sync.datahub.metrichub_glossary.py`
+# Build the YAML configuration file before running the ingestion: `python3 -m sync.datahub.metrichub_glossary`
 source:
   type: datahub-business-glossary
   config:
