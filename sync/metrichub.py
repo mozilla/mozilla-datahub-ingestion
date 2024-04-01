@@ -166,10 +166,6 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                 for statistic_name, _ in metric.statistics.items():
                     statistics.append(MetricStatistic(name=statistic_name))
 
-            ###
-            metric.level=MetricLevel.GOLD
-            ###
-
             metrics.append(
                 MetricHubDefinition(
                     name=metric.name,
