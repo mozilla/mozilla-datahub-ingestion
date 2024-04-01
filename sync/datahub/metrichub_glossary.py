@@ -20,12 +20,12 @@ GLOSSARY_FILENAME = "metric_hub_glossary.yaml"
 def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
     metric_content = ""
 
-    # if metric.data_source:
-    #     metric_content += f"# {metric.data_source} \n\n"
-
     if metric.deprecated:
-        metric_content += "### ⚠️ **This metric has been deprecated**\n\n"
+        metric_content += "#### ⚠️ **This metric has been deprecated**\n\n"
 
+    if metric.friendly_name:
+        metric_content += f"## {metric.friendly_name} \n\n"
+    
     if metric.level:
         metric_content += f"**Metric Level:** {_get_metric_level_link_text(metric.level)}\n\n"
 
@@ -36,7 +36,9 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
         metric_content += f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
 
     if metric.data_source:
-        metric_content += f"**Data Source:** {metric.data_source}\n\n"
+        # FIXME: It would be nice to link to the dataset page in datahub (via metric.data_source) 
+        #        or to the BQ table(s) (via metric.bigquery_tables)
+        metric_content += f"**Data Source:** {metric.data_source} {metric.bigquery_tables}\n\n"
 
     if metric.statistics:
         metric_content += "**Explore this metric in Looker:**\n"
