@@ -109,10 +109,10 @@ def main() -> None:
     ]
 
     glossary = {
-        "version": '1', # 1, ## int led to "validation error for BusinessGlossaryConfig"
+        "version": 1,
         "source": "Metric-Hub",
         "url": METRIC_HUB_REPO_URL,
-        "owners": {}, # [], ## list led to "validation error for BusinessGlossaryConfig"
+        "owners": [],
         "nodes": [
             {
                 "name": "Metric Hub",
