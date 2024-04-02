@@ -40,6 +40,7 @@ class MetricHubDefinition:
     bigquery_tables: Optional[List[str]]
     data_source: Optional[str]
     statistics: Optional[List[MetricStatistic]]
+    friendly_name: Optional[str]
     deprecated: bool = False
 
     @property
@@ -173,6 +174,7 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                     if isinstance(metric.owner, str)
                     else metric.owner,
                     level=metric.level.value if metric.level else None,
+                    friendly_name=metric.friendly_name if metric.friendly_name else None,
                     deprecated=metric.deprecated or False,
                     sql_definition=metric.select_expression,
                     product=definition.platform,
