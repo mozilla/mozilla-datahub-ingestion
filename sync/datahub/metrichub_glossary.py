@@ -35,11 +35,6 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
     if metric.sql_definition:
         metric_content += f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
 
-    if metric.data_source:
-        # FIXME: It would be nice to link to the dataset page in datahub (via metric.data_source) 
-        #        or to the BQ table(s) (via metric.bigquery_tables)
-        metric_content += f"**Data Source:** {metric.data_source} {metric.bigquery_tables}\n\n"
-
     if metric.statistics:
         metric_content += "**Explore this metric in Looker:**\n"
         metric_content += "\n".join(_get_looker_statistics_links(metric))
