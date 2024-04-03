@@ -35,7 +35,7 @@ The local DataHub instance can by default be accessed via: http://localhost:9002
 
 ### Prerequisites 
 
-- [Python](https://www.python.org/) (version 3.10+)
+- [Python](https://www.python.org/) (version 3.10)
 - [Docker](https://www.docker.com/): DataHub uses Docker for local development and
   deployment.
     - [docker](https://docs.docker.com/engine/installation/#supported-platforms)

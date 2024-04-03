@@ -25,15 +25,19 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
 
     if metric.friendly_name:
         metric_content += f"## {metric.friendly_name} \n\n"
-    
+
     if metric.level:
-        metric_content += f"**Metric Level:** {_get_metric_level_link_text(metric.level)}\n\n"
+        metric_content += (
+            f"**Metric Level:** {_get_metric_level_link_text(metric.level)}\n\n"
+        )
 
     if metric.description:
         metric_content += f"{metric.description.strip().replace(linesep, ' ')}\n\n"
 
     if metric.sql_definition:
-        metric_content += f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
+        metric_content += (
+            f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
+        )
 
     if metric.statistics:
         metric_content += "**Explore this metric in Looker:**\n"
