@@ -1,4 +1,5 @@
 """Builds the metric-hub glossary YAML file for syncing to DataHub."""
+
 import itertools
 import operator
 from os import linesep

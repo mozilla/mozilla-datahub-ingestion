@@ -170,13 +170,15 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                 MetricHubDefinition(
                     name=metric.name,
                     description=metric.description or "",
-                    owners=[metric.owner]
-                    if isinstance(metric.owner, str)
-                    else metric.owner,
+                    owners=(
+                        [metric.owner]
+                        if isinstance(metric.owner, str)
+                        else metric.owner
+                    ),
                     level=metric.level.value if metric.level else None,
-                    friendly_name=metric.friendly_name
-                    if metric.friendly_name
-                    else None,
+                    friendly_name=(
+                        metric.friendly_name if metric.friendly_name else None
+                    ),
                     deprecated=metric.deprecated or False,
                     sql_definition=metric.select_expression,
                     product=definition.platform,
