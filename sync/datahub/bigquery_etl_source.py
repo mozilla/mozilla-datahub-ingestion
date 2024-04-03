@@ -10,9 +10,6 @@ from datahub.metadata.schema_classes import (
     InstitutionalMemoryMetadataClass,
 )
 from datahub.configuration.common import ConfigModel
-from datahub.ingestion.api.source_helpers import (
-    auto_workunit_reporter,
-)
 
 from sync.bigquery_etl import get_bigquery_etl_table_references
 from sync.datahub.utils import get_current_timestamp
@@ -25,17 +22,14 @@ class BigQueryEtlSourceConfig(ConfigModel):
 class BigQueryEtlSource(Source):
     def __init__(self, config: BigQueryEtlSourceConfig, ctx: PipelineContext):
         super().__init__(ctx)
-        self.source_config = config
+        self.config = config
         self.report = SourceReport()
         self.platform = "bigquery"
 
     @classmethod
-    def create(cls, config_dict, ctx):
+    def create(cls, config_dict: dict, ctx: PipelineContext) -> "BigQueryEtlSource":
         config = BigQueryEtlSourceConfig.parse_obj(config_dict)
         return cls(config, ctx)
-
-    def get_workunits(self) -> Iterable[MetadataWorkUnit]:
-        return auto_workunit_reporter(self.report, self.get_workunits_internal())
 
     def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
         for qualified_table_name, urls in get_bigquery_etl_table_references().items():
@@ -43,7 +37,7 @@ class BigQueryEtlSource(Source):
             bigquery_qualified_urn = builder.make_dataset_urn(
                 platform=self.platform,
                 name=qualified_table_name,
-                env=self.source_config.env,
+                env=self.config.env,
             )
 
             link_elements = []

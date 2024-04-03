@@ -4,64 +4,79 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.11.0
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.1
     # via -r requirements.in
-acryl-sqlglot==18.0.2.dev15
+acryl-datahub-classify==0.0.9
     # via acryl-datahub
-aiohttp==3.9.2
+acryl-sqlglot==22.3.1.dev3
+    # via acryl-datahub
+aiohttp==3.9.3
     # via acryl-datahub
 aiosignal==1.3.1
     # via aiohttp
 altair==4.2.0
     # via great-expectations
-argon2-cffi==21.3.0
-    # via notebook
+anyio==3.7.1
+    # via jupyter-server
+appnope==0.1.4
+    # via ipykernel
+argon2-cffi==23.1.0
+    # via
+    #   jupyter-server
+    #   nbclassic
+    #   notebook
 argon2-cffi-bindings==21.2.0
     # via argon2-cffi
-asttokens==2.0.7
+asttokens==2.4.1
     # via stack-data
-async-timeout==4.0.2
+async-timeout==4.0.3
     # via aiohttp
-attrs==22.1.0
+attrs==23.2.0
     # via
     #   aiohttp
     #   cattrs
     #   jsonschema
     #   looker-sdk
     #   mozilla-metric-config-parser
-avro==1.10.2
+    #   referencing
+avro==1.11.3
     # via
     #   acryl-datahub
     #   avro-gen3
-avro-gen3==0.7.10
+avro-gen3==0.7.12
     # via acryl-datahub
-backcall==0.2.0
-    # via ipython
-beautifulsoup4==4.11.1
+beautifulsoup4==4.12.3
     # via nbconvert
 black==22.12.0
     # via -r requirements.in
-bleach==5.0.1
+bleach==6.1.0
     # via nbconvert
-build==1.1.1
+blis==0.7.11
+    # via thinc
+build==1.2.1
     # via pip-tools
 cached-property==1.5.2
     # via acryl-datahub
-cachetools==5.2.0
+cachetools==5.3.3
     # via google-auth
-cattrs==22.1.0
+catalogue==2.0.10
+    # via
+    #   spacy
+    #   srsly
+    #   thinc
+cattrs==23.2.3
     # via
     #   looker-sdk
     #   mozilla-metric-config-parser
-certifi==2023.7.22
+certifi==2024.2.2
     # via
     #   requests
     #   sentry-sdk
-cffi==1.15.1
+cffi==1.16.0
     # via
     #   argon2-cffi-bindings
     #   cryptography
-charset-normalizer==2.1.0
+charset-normalizer==3.3.2
     # via requests
 click==8.1.7
     # via
@@ -72,303 +87,364 @@ click==8.1.7
     #   great-expectations
     #   mozilla-metric-config-parser
     #   pip-tools
-click-default-group==1.2.2
+    #   typer
+click-default-group==1.2.4
     # via acryl-datahub
 click-spinner==0.1.10
     # via acryl-datahub
-colorama==0.4.5
+colorama==0.4.6
     # via great-expectations
-cryptography==42.0.4
+comm==0.2.2
+    # via ipywidgets
+confection==0.1.4
+    # via thinc
+cryptography==42.0.5
     # via great-expectations
-debugpy==1.6.2
+cymem==2.0.8
+    # via
+    #   preshed
+    #   spacy
+    #   thinc
+debugpy==1.8.1
     # via ipykernel
 decorator==5.1.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
-deprecated==1.2.13
+deprecated==1.2.14
     # via acryl-datahub
-docker==5.0.3
+docker==7.0.0
     # via acryl-datahub
 entrypoints==0.4
     # via
-    #   acryl-datahub
     #   altair
     #   jupyter-client
-    #   nbconvert
-exceptiongroup==1.0.0rc8
+exceptiongroup==1.2.0
     # via
+    #   anyio
     #   cattrs
+    #   ipython
     #   pytest
-executing==0.9.1
+executing==2.0.1
     # via stack-data
-expandvars==0.9.0
+expandvars==0.12.0
     # via acryl-datahub
-faker==19.9.0
+faker==24.4.0
     # via polyfactory
-fastjsonschema==2.16.1
+fastjsonschema==2.19.1
     # via nbformat
 flake8==6.1.0
     # via -r requirements.in
-frozenlist==1.3.3
+frozenlist==1.4.1
     # via
     #   aiohttp
     #   aiosignal
-future==0.18.3
-    # via sqlalchemy-bigquery
-gitdb==4.0.10
+gitdb==4.0.11
     # via gitpython
-gitpython==3.1.41
+gitpython==3.1.43
     # via
     #   acryl-datahub
     #   mozilla-metric-config-parser
-google-api-core[grpc]==2.11.0
+google-api-core[grpc]==2.18.0
     # via
     #   google-cloud-appengine-logging
     #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
     #   sqlalchemy-bigquery
-google-auth==2.17.3
+google-auth==2.29.0
     # via
     #   google-api-core
+    #   google-cloud-appengine-logging
+    #   google-cloud-bigquery
     #   google-cloud-core
     #   sqlalchemy-bigquery
-google-cloud-appengine-logging==1.1.3
+google-cloud-appengine-logging==1.4.3
     # via google-cloud-logging
-google-cloud-audit-log==0.2.3
+google-cloud-audit-log==0.2.5
     # via google-cloud-logging
-google-cloud-bigquery==3.2.0
+google-cloud-bigquery==3.20.1
     # via
     #   acryl-datahub
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.14.1
-    # via
-    #   google-cloud-bigquery
-    #   sqlalchemy-bigquery
-google-cloud-core==2.3.2
+google-cloud-core==2.4.1
     # via
     #   google-cloud-bigquery
     #   google-cloud-logging
 google-cloud-datacatalog-lineage==0.2.2
     # via acryl-datahub
-google-cloud-logging==3.1.1
+google-cloud-logging==3.5.0
     # via acryl-datahub
-google-crc32c==1.3.0
+google-crc32c==1.5.0
     # via google-resumable-media
-google-resumable-media==2.3.3
+google-resumable-media==2.7.0
     # via google-cloud-bigquery
-googleapis-common-protos[grpc]==1.56.4
+googleapis-common-protos[grpc]==1.63.0
     # via
     #   google-api-core
     #   google-cloud-audit-log
     #   grpc-google-iam-v1
     #   grpcio-status
-great-expectations==0.15.41
+great-expectations==0.15.50
     # via acryl-datahub
-greenlet==1.1.2
-    # via acryl-datahub
-grpc-google-iam-v1==0.12.4
+greenlet==3.0.3
+    # via
+    #   acryl-datahub
+    #   sqlalchemy
+grpc-google-iam-v1==0.13.0
     # via google-cloud-logging
-grpcio==1.53.2
+grpcio==1.62.1
     # via
     #   google-api-core
-    #   google-cloud-bigquery
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.47.0
+grpcio-status==1.62.1
     # via google-api-core
 humanfriendly==10.0
     # via acryl-datahub
-idna==3.3
+idna==3.6
     # via
+    #   anyio
     #   requests
     #   yarl
-ijson==3.2.0.post0
+ijson==3.2.3
     # via acryl-datahub
-importlib-metadata==4.12.0
-    # via great-expectations
+importlib-metadata==7.1.0
+    # via
+    #   build
+    #   great-expectations
 iniconfig==2.0.0
     # via pytest
-ipykernel==6.15.1
+ipaddress==1.0.23
+    # via acryl-datahub-classify
+ipykernel==6.17.1
     # via
-    #   ipywidgets
+    #   nbclassic
     #   notebook
-ipython==8.10.0
+ipython==8.21.0
     # via
     #   great-expectations
     #   ipykernel
     #   ipywidgets
 ipython-genutils==0.2.0
-    # via notebook
-ipywidgets==8.0.4
+    # via
+    #   nbclassic
+    #   notebook
+ipywidgets==8.1.2
     # via great-expectations
-jedi==0.18.1
+iso3166==2.1.1
+    # via schwifty
+jedi==0.19.1
     # via ipython
 jinja2==3.1.3
     # via
     #   altair
     #   great-expectations
+    #   jupyter-server
     #   mozilla-metric-config-parser
+    #   nbclassic
     #   nbconvert
     #   notebook
-jsonpatch==1.32
+    #   spacy
+jsonpatch==1.33
     # via great-expectations
-jsonpointer==2.3
+jsonpointer==2.4
     # via jsonpatch
 jsonref==1.1.0
     # via acryl-datahub
-jsonschema==4.9.1
+jsonschema==4.21.1
     # via
     #   acryl-datahub
     #   altair
     #   great-expectations
     #   nbformat
-jupyter-client==7.3.4
+jsonschema-specifications==2023.12.1
+    # via jsonschema
+jupyter-client==7.4.9
     # via
     #   ipykernel
+    #   jupyter-server
+    #   nbclassic
     #   nbclient
     #   notebook
-jupyter-core==4.11.2
+jupyter-core==4.12.0
     # via
     #   jupyter-client
+    #   jupyter-server
+    #   nbclassic
     #   nbconvert
     #   nbformat
     #   notebook
-jupyterlab-pygments==0.2.2
+jupyter-server==1.24.0
+    # via
+    #   nbclassic
+    #   notebook-shim
+jupyterlab-pygments==0.3.0
     # via nbconvert
-jupyterlab-widgets==3.0.5
+jupyterlab-widgets==3.0.10
     # via ipywidgets
-lkml==1.3.1
+langcodes==3.3.0
+    # via spacy
+lkml==1.3.4
     # via acryl-datahub
 looker-sdk==23.0.0
     # via acryl-datahub
-lxml==4.9.1
-    # via nbconvert
-makefun==1.15.0
+makefun==1.15.2
     # via great-expectations
-markupsafe==2.0.1
+markupsafe==2.1.5
     # via
     #   jinja2
     #   nbconvert
-marshmallow==3.19.0
+marshmallow==3.21.1
     # via great-expectations
-matplotlib-inline==0.1.3
+matplotlib-inline==0.1.6
     # via
     #   ipykernel
     #   ipython
 mccabe==0.7.0
     # via flake8
-mistune==0.8.4
+mistune==3.0.2
     # via
     #   great-expectations
     #   nbconvert
-mixpanel==4.10.0
+mixpanel==4.10.1
     # via acryl-datahub
-more-itertools==8.14.0
+more-itertools==10.2.0
     # via acryl-datahub
 mozilla-metric-config-parser==2024.3.2
     # via -r requirements.in
-mozilla-nimbus-schemas==2023.9.3
+mozilla-nimbus-schemas==2023.10.3
     # via mozilla-metric-config-parser
-multidict==6.0.4
+multidict==6.0.5
     # via
     #   aiohttp
     #   yarl
-mypy-extensions==0.4.3
+murmurhash==1.0.10
     # via
-    #   acryl-datahub
+    #   preshed
+    #   spacy
+    #   thinc
+mypy-extensions==1.0.0
+    # via
     #   black
     #   typing-inspect
+nbclassic==1.0.0
+    # via notebook
 nbclient==0.6.3
     # via nbconvert
-nbconvert==6.5.3
-    # via notebook
-nbformat==5.4.0
+nbconvert==7.16.3
+    # via
+    #   jupyter-server
+    #   nbclassic
+    #   notebook
+nbformat==5.10.2
     # via
     #   great-expectations
+    #   jupyter-server
+    #   nbclassic
     #   nbclient
     #   nbconvert
     #   notebook
-nest-asyncio==1.5.5
+nest-asyncio==1.6.0
     # via
     #   ipykernel
     #   jupyter-client
+    #   nbclassic
     #   nbclient
     #   notebook
-networkx==2.8.5
+networkx==3.2.1
     # via sqllineage
-notebook==6.4.12
+notebook==6.5.6
     # via great-expectations
-numpy==1.23.1
+notebook-shim==0.2.4
+    # via
+    #   nbclassic
+    #   notebook
+numpy==1.26.4
     # via
     #   altair
+    #   blis
     #   great-expectations
     #   pandas
-    #   pyarrow
     #   scipy
-packaging==21.3
+    #   spacy
+    #   thinc
+packaging==24.0
     # via
     #   acryl-datahub
     #   build
+    #   docker
     #   google-cloud-bigquery
     #   great-expectations
     #   ipykernel
+    #   jupyter-server
     #   marshmallow
     #   nbconvert
     #   pytest
-pandas==1.4.3
+    #   spacy
+    #   sqlalchemy-bigquery
+    #   thinc
+pandas==2.2.1
     # via
     #   altair
     #   great-expectations
-pandocfilters==1.5.0
+pandocfilters==1.5.1
     # via nbconvert
 parso==0.8.3
     # via jedi
-pathspec==0.10.0
+pathlib-abc==0.1.1
+    # via pathy
+pathspec==0.12.1
     # via
     #   black
     #   yamllint
-pexpect==4.8.0
+pathy==0.11.0
+    # via spacy
+pexpect==4.9.0
     # via ipython
-pickleshare==0.7.5
-    # via ipython
+phonenumbers==8.13.0
+    # via acryl-datahub-classify
 pip-tools==7.4.1
     # via -r requirements.in
-platformdirs==2.5.2
+platformdirs==4.2.0
     # via black
 pluggy==1.4.0
     # via pytest
-polyfactory==2.9.0
+polyfactory==2.15.0
     # via mozilla-nimbus-schemas
-progressbar2==4.0.0
-    # via acryl-datahub
-prometheus-client==0.14.1
-    # via notebook
-prompt-toolkit==3.0.30
-    # via ipython
-proto-plus==1.22.0
+preshed==3.0.9
     # via
+    #   spacy
+    #   thinc
+progressbar2==4.4.2
+    # via acryl-datahub
+prometheus-client==0.20.0
+    # via
+    #   jupyter-server
+    #   nbclassic
+    #   notebook
+prompt-toolkit==3.0.43
+    # via ipython
+proto-plus==1.23.0
+    # via
+    #   google-api-core
     #   google-cloud-appengine-logging
-    #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
-protobuf==3.20.3
+protobuf==4.25.3
     # via
     #   google-api-core
     #   google-cloud-appengine-logging
     #   google-cloud-audit-log
-    #   google-cloud-bigquery
-    #   google-cloud-bigquery-storage
     #   google-cloud-datacatalog-lineage
+    #   google-cloud-logging
     #   googleapis-common-protos
+    #   grpc-google-iam-v1
     #   grpcio-status
     #   proto-plus
-psutil==5.9.1
+psutil==5.9.8
     # via
     #   acryl-datahub
     #   ipykernel
@@ -378,44 +454,41 @@ ptyprocess==0.7.0
     #   terminado
 pure-eval==0.2.2
     # via stack-data
-pyarrow==6.0.1
-    # via
-    #   google-cloud-bigquery
-    #   sqlalchemy-bigquery
-pyasn1==0.4.8
+pyasn1==0.6.0
     # via
     #   pyasn1-modules
     #   rsa
-pyasn1-modules==0.2.8
+pyasn1-modules==0.4.0
     # via google-auth
 pycodestyle==2.11.1
     # via flake8
-pycparser==2.21
+pycountry==23.12.11
+    # via schwifty
+pycparser==2.22
     # via cffi
-pydantic==1.10.13
+pydantic==1.10.15
     # via
     #   acryl-datahub
+    #   confection
     #   great-expectations
     #   mozilla-nimbus-schemas
+    #   spacy
+    #   thinc
 pyflakes==3.1.0
     # via flake8
-pygments==2.15.0
+pygments==2.17.2
     # via
     #   ipython
     #   nbconvert
-pyparsing==2.4.7
-    # via
-    #   great-expectations
-    #   packaging
+pyparsing==3.1.2
+    # via great-expectations
 pyproject-hooks==1.0.0
     # via
     #   build
     #   pip-tools
-pyrsistent==0.18.1
-    # via jsonschema
 pytest==8.1.1
     # via -r requirements.in
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
     # via
     #   acryl-datahub
     #   faker
@@ -423,27 +496,30 @@ python-dateutil==2.8.2
     #   great-expectations
     #   jupyter-client
     #   pandas
-python-utils==3.3.3
+python-stdnum==1.20
+    # via acryl-datahub-classify
+python-utils==3.8.2
     # via progressbar2
-pytz==2022.2
+pytz==2024.1
     # via
-    #   avro-gen3
     #   great-expectations
     #   mozilla-metric-config-parser
     #   pandas
-pytz-deprecation-shim==0.1.0.post0
-    # via tzlocal
-pyyaml==6.0
+pyyaml==6.0.1
     # via
     #   acryl-datahub
     #   yamllint
-pyzmq==23.2.1
+pyzmq==24.0.1
     # via
     #   ipykernel
     #   jupyter-client
+    #   jupyter-server
+    #   nbclassic
     #   notebook
-ratelimiter==1.2.0.post0
-    # via acryl-datahub
+referencing==0.34.0
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.31.0
     # via
     #   acryl-datahub
@@ -455,42 +531,62 @@ requests==2.31.0
     #   mixpanel
     #   mozilla-metric-config-parser
     #   requests-file
-requests-file==1.5.1
+    #   spacy
+requests-file==2.0.0
     # via acryl-datahub
+rpds-py==0.18.0
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via google-auth
 ruamel-yaml==0.17.17
     # via
     #   acryl-datahub
     #   great-expectations
-scipy==1.10.0
+schwifty==2024.1.1.post0
+    # via acryl-datahub-classify
+scipy==1.13.0
     # via
     #   acryl-datahub
     #   great-expectations
-send2trash==1.8.0
-    # via notebook
-sentry-sdk==1.29.2
+send2trash==1.8.2
+    # via
+    #   jupyter-server
+    #   nbclassic
+    #   notebook
+sentry-sdk==1.44.1
     # via acryl-datahub
 six==1.16.0
     # via
     #   asttokens
     #   avro-gen3
     #   bleach
-    #   google-auth
     #   mixpanel
     #   python-dateutil
-    #   requests-file
-smmap==5.0.0
+smart-open==6.4.0
+    # via
+    #   pathy
+    #   spacy
+smmap==5.0.1
     # via gitdb
-soupsieve==2.3.2.post1
+sniffio==1.3.1
+    # via anyio
+soupsieve==2.5
     # via beautifulsoup4
+spacy==3.5.0
+    # via acryl-datahub-classify
+spacy-legacy==3.0.12
+    # via spacy
+spacy-loggers==1.0.5
+    # via spacy
 sql-metadata==2.2.2
     # via acryl-datahub
-sqlalchemy==1.3.24
+sqlalchemy==1.4.52
     # via
     #   acryl-datahub
     #   sqlalchemy-bigquery
-sqlalchemy-bigquery==1.4.4
+sqlalchemy-bigquery==1.10.0
     # via acryl-datahub
 sqllineage==1.3.8
     # via acryl-datahub
@@ -499,15 +595,25 @@ sqlparse==0.4.4
     #   acryl-datahub
     #   sql-metadata
     #   sqllineage
-stack-data==0.3.0
+srsly==2.4.8
+    # via
+    #   confection
+    #   spacy
+    #   thinc
+stack-data==0.6.3
     # via ipython
-tabulate==0.8.10
+tabulate==0.9.0
     # via acryl-datahub
-termcolor==1.1.0
+termcolor==2.4.0
     # via acryl-datahub
-terminado==0.15.0
-    # via notebook
-tinycss2==1.1.1
+terminado==0.18.1
+    # via
+    #   jupyter-server
+    #   nbclassic
+    #   notebook
+thinc==8.1.12
+    # via spacy
+tinycss2==1.2.1
     # via nbconvert
 toml==0.10.2
     # via
@@ -520,70 +626,88 @@ tomli==2.0.1
     #   pip-tools
     #   pyproject-hooks
     #   pytest
-toolz==0.12.0
+toolz==0.12.1
     # via altair
-tornado==6.3.3
+tornado==6.4
     # via
     #   ipykernel
     #   jupyter-client
+    #   jupyter-server
+    #   nbclassic
     #   notebook
     #   terminado
-tqdm==4.64.0
-    # via great-expectations
+tqdm==4.66.2
+    # via
+    #   great-expectations
+    #   spacy
 traitlets==5.2.1.post0
     # via
     #   acryl-datahub
+    #   comm
     #   ipykernel
     #   ipython
     #   ipywidgets
     #   jupyter-client
     #   jupyter-core
+    #   jupyter-server
     #   matplotlib-inline
+    #   nbclassic
     #   nbclient
     #   nbconvert
     #   nbformat
     #   notebook
-typing-extensions==4.3.0
+typer==0.7.0
+    # via
+    #   pathy
+    #   spacy
+typing-extensions==4.10.0
     # via
     #   acryl-datahub
+    #   cattrs
     #   great-expectations
     #   looker-sdk
     #   polyfactory
     #   pydantic
+    #   python-utils
     #   typing-inspect
-typing-inspect==0.7.1
+typing-inspect==0.9.0
     # via acryl-datahub
-tzdata==2022.2
-    # via pytz-deprecation-shim
-tzlocal==4.2
-    # via
-    #   avro-gen3
-    #   great-expectations
+tzdata==2024.1
+    # via pandas
+tzlocal==5.2
+    # via great-expectations
 urllib3==1.26.18
     # via
+    #   docker
     #   great-expectations
     #   mixpanel
     #   requests
     #   sentry-sdk
-wcwidth==0.2.5
+vininfo==1.8.0
+    # via acryl-datahub-classify
+wasabi==1.1.2
+    # via
+    #   spacy
+    #   thinc
+wcwidth==0.2.13
     # via prompt-toolkit
 webencodings==0.5.1
     # via
     #   bleach
     #   tinycss2
-websocket-client==1.3.3
-    # via docker
-wheel==0.38.1
+websocket-client==1.7.0
+    # via jupyter-server
+wheel==0.43.0
     # via pip-tools
-widgetsnbextension==4.0.5
+widgetsnbextension==4.0.10
     # via ipywidgets
-wrapt==1.14.1
+wrapt==1.16.0
     # via deprecated
 yamllint==1.35.1
     # via -r requirements.in
-yarl==1.8.2
+yarl==1.9.4
     # via aiohttp
-zipp==3.8.1
+zipp==3.18.1
     # via importlib-metadata
 
 # The following packages are considered to be unsafe in a requirements file:
