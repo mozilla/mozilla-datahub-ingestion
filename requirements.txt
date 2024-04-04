@@ -4,11 +4,11 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.1
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.1.2
     # via -r requirements.in
 acryl-datahub-classify==0.0.9
     # via acryl-datahub
-acryl-sqlglot==22.3.1.dev3
+acryl-sqlglot==22.4.1.dev4
     # via acryl-datahub
 aiohttp==3.9.3
     # via acryl-datahub
@@ -18,8 +18,6 @@ altair==4.2.0
     # via great-expectations
 anyio==3.7.1
     # via jupyter-server
-appnope==0.1.4
-    # via ipykernel
 argon2-cffi==23.1.0
     # via
     #   jupyter-server
@@ -212,9 +210,7 @@ idna==3.6
 ijson==3.2.3
     # via acryl-datahub
 importlib-metadata==7.1.0
-    # via
-    #   build
-    #   great-expectations
+    # via great-expectations
 iniconfig==2.0.0
     # via pytest
 ipaddress==1.0.23
