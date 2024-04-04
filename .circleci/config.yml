@@ -76,6 +76,9 @@ workflows:
             - run:
                 name: Generate Metric-Hub Glossary YAML
                 command: python -m sync.datahub.metrichub_glossary
+            - run:
+                name: Connect Glossary Terms to Tables
+                command: python -m datahub dataset upsert -f datasets.yaml
           requires:
             - unit-tests
       - datahub-ingest:
