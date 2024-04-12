@@ -202,7 +202,7 @@ grpcio-status==1.62.1
     # via google-api-core
 humanfriendly==10.0
     # via acryl-datahub
-idna==3.6
+idna==3.7
     # via
     #   anyio
     #   requests
