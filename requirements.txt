@@ -631,7 +631,7 @@ tornado==6.4
     #   nbclassic
     #   notebook
     #   terminado
-tqdm==4.66.2
+tqdm==4.66.3
     # via
     #   great-expectations
     #   spacy
