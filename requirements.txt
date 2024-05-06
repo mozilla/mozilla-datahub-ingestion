@@ -405,7 +405,7 @@ pip-tools==7.4.1
     # via -r requirements.in
 platformdirs==4.2.0
     # via black
-pluggy==1.4.0
+pluggy==1.5.0
     # via pytest
 polyfactory==2.15.0
     # via mozilla-nimbus-schemas
@@ -481,7 +481,7 @@ pyproject-hooks==1.0.0
     # via
     #   build
     #   pip-tools
-pytest==8.1.1
+pytest==8.2.0
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via
