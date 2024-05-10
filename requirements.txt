@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.2
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.2.1
     # via -r requirements.in
 acryl-datahub-classify==0.0.10
     # via acryl-datahub
