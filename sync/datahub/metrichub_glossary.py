@@ -1,11 +1,12 @@
 """Builds the metric-hub glossary YAML file for syncing to DataHub."""
 
+from collections import defaultdict
 import itertools
 import operator
 from os import linesep
-from typing import Dict, List
+from typing import Any, Dict, List
 from metric_config_parser.metric import MetricLevel
-from datahub.emitter.mce_builder import make_term_urn
+from datahub.emitter.mce_builder import make_term_urn, make_dataset_urn
 
 import yaml
 
@@ -16,6 +17,7 @@ from sync.metrichub import (
 )
 
 GLOSSARY_FILENAME = "metric_hub_glossary.yaml"
+TABLE_TO_METRIC_FILENAME = "datasets.yaml"
 
 
 def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
@@ -99,6 +101,28 @@ def _build_product_dict(product: str, metrics: List[MetricHubDefinition]) -> Dic
     }
 
 
+def _generate_table_to_term_data(
+    metrics: List[MetricHubDefinition],
+) -> List[Dict[str, Any]]:
+    source_table_to_metric = defaultdict(list)
+    yaml_data = []
+
+    for metric in metrics:
+        if metric.bigquery_tables is None:
+            continue
+        for bigquery_table in metric.bigquery_tables:
+            source_table_urn = make_dataset_urn(
+                platform="bigquery",
+                name=bigquery_table,
+            )
+            source_table_to_metric[source_table_urn].append(metric.urn)
+
+    for urn, glossary_terms in source_table_to_metric.items():
+        yaml_data.append({"urn": urn, "glossary_terms": glossary_terms})
+
+    return yaml_data
+
+
 def main() -> None:
     metric_hub_definitions = get_metric_definitions()
     product_nodes = [
@@ -122,8 +146,13 @@ def main() -> None:
         ],
     }
 
+    yaml_data = _generate_table_to_term_data(metric_hub_definitions)
+
     with open(GLOSSARY_FILENAME, "w+") as f:
         yaml.dump(glossary, f)
+
+    with open(TABLE_TO_METRIC_FILENAME, "w+") as f:
+        yaml.dump(yaml_data, f, sort_keys=False)
 
 
 if __name__ == "__main__":
