@@ -146,7 +146,7 @@ def main() -> None:
         ],
     }
 
-    yaml_data = _generate_table_to_term_data(metric_hub_definitions)
+    datasets_yaml_data = _generate_table_to_term_data(metric_hub_definitions)
 
     with open(GLOSSARY_FILENAME, "w+") as f:
         yaml.dump(glossary, f)
