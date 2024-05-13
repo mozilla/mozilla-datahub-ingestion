@@ -152,7 +152,7 @@ def main() -> None:
         yaml.dump(glossary, f)
 
     with open(TABLE_TO_METRIC_FILENAME, "w+") as f:
-        yaml.dump(yaml_data, f, sort_keys=False)
+        yaml.dump(datasets_yaml_data, f, sort_keys=False)
 
 
 if __name__ == "__main__":
