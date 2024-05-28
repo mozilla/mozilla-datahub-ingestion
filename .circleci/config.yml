@@ -78,7 +78,9 @@ workflows:
                 command: python -m sync.datahub.metrichub_glossary
             - run:
                 name: Connect Glossary Terms to Tables
-                command: python -m datahub dataset upsert -f datasets.yaml
+                command: |
+                  export DATAHUB_GMS_URL="https://mozilla.acryl.io/gms"
+                  python -m datahub dataset upsert -f datasets.yaml
           requires:
             - unit-tests
       - datahub-ingest:
