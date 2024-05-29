@@ -5,4 +5,4 @@ black==24.4.2
 flake8==7.0.0
 yamllint==1.35.1
 pytest==8.2.1
-mozilla-metric-config-parser==2024.5.3
+mozilla-metric-config-parser==2024.5.4
