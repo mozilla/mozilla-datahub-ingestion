@@ -674,7 +674,7 @@ tzdata==2024.1
     # via pandas
 tzlocal==5.2
     # via great-expectations
-urllib3==1.26.18
+urllib3==1.26.19
     # via
     #   docker
     #   great-expectations
