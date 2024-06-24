@@ -4,11 +4,11 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.2.4
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.3
     # via -r requirements.in
 acryl-datahub-classify==0.0.10
     # via acryl-datahub
-acryl-sqlglot[rs]==23.17.1.dev10
+acryl-sqlglot[rs]==24.0.1.dev7
     # via acryl-datahub
 aiohttp==3.9.4
     # via acryl-datahub
@@ -41,7 +41,7 @@ avro==1.11.3
     # via
     #   acryl-datahub
     #   avro-gen3
-avro-gen3==0.7.12
+avro-gen3==0.7.13
     # via acryl-datahub
 beautifulsoup4==4.12.3
     # via nbconvert
@@ -148,6 +148,7 @@ google-api-core[grpc]==2.18.0
     #   google-cloud-appengine-logging
     #   google-cloud-bigquery
     #   google-cloud-core
+    #   google-cloud-datacatalog
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
     #   sqlalchemy-bigquery
@@ -157,6 +158,7 @@ google-auth==2.29.0
     #   google-cloud-appengine-logging
     #   google-cloud-bigquery
     #   google-cloud-core
+    #   google-cloud-datacatalog
     #   sqlalchemy-bigquery
 google-cloud-appengine-logging==1.4.3
     # via google-cloud-logging
@@ -170,6 +172,8 @@ google-cloud-core==2.4.1
     # via
     #   google-cloud-bigquery
     #   google-cloud-logging
+google-cloud-datacatalog==3.19.0
+    # via acryl-datahub
 google-cloud-datacatalog-lineage==0.2.2
     # via acryl-datahub
 google-cloud-logging==3.5.0
@@ -191,7 +195,9 @@ greenlet==3.0.3
     #   acryl-datahub
     #   sqlalchemy
 grpc-google-iam-v1==0.13.0
-    # via google-cloud-logging
+    # via
+    #   google-cloud-datacatalog
+    #   google-cloud-logging
 grpcio==1.62.1
     # via
     #   google-api-core
@@ -358,6 +364,7 @@ notebook-shim==0.2.4
     # via nbclassic
 numpy==1.26.4
     # via
+    #   acryl-datahub
     #   altair
     #   blis
     #   great-expectations
@@ -426,6 +433,7 @@ proto-plus==1.23.0
     # via
     #   google-api-core
     #   google-cloud-appengine-logging
+    #   google-cloud-datacatalog
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
 protobuf==4.25.3
@@ -433,6 +441,7 @@ protobuf==4.25.3
     #   google-api-core
     #   google-cloud-appengine-logging
     #   google-cloud-audit-log
+    #   google-cloud-datacatalog
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
     #   googleapis-common-protos
