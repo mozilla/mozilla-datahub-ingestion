@@ -562,7 +562,7 @@ send2trash==1.8.2
     #   jupyter-server
     #   nbclassic
     #   notebook
-sentry-sdk==1.44.1
+sentry-sdk==2.8.0
     # via acryl-datahub
 six==1.16.0
     # via
