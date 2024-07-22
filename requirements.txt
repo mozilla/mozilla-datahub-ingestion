@@ -595,7 +595,7 @@ sqlalchemy-bigquery==1.10.0
     # via acryl-datahub
 sqlglotrs==0.2.7
     # via acryl-sqlglot
-sqlparse==0.4.4
+sqlparse==0.5.0
     # via acryl-datahub
 srsly==2.4.8
     # via
