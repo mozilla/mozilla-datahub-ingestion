@@ -4,11 +4,11 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.13.3.6
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.14.0
     # via -r requirements.in
 acryl-datahub-classify==0.0.11
     # via acryl-datahub
-acryl-sqlglot[rs]==25.3.1.dev3
+acryl-sqlglot[rs]==25.8.2.dev9
     # via acryl-datahub
 aiohappyeyeballs==2.3.5
     # via aiohttp
@@ -554,7 +554,9 @@ ruamel-yaml==0.17.17
     #   acryl-datahub
     #   great-expectations
 schwifty==2024.1.1.post0
-    # via acryl-datahub-classify
+    # via
+    #   acryl-datahub
+    #   acryl-datahub-classify
 scipy==1.13.0
     # via
     #   acryl-datahub
@@ -595,7 +597,7 @@ sqlalchemy==1.4.52
     #   sqlalchemy-bigquery
 sqlalchemy-bigquery==1.10.0
     # via acryl-datahub
-sqlglotrs==0.2.7
+sqlglotrs==0.2.8
     # via acryl-sqlglot
 sqlparse==0.5.0
     # via acryl-datahub
