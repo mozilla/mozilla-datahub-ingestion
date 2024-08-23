@@ -175,7 +175,7 @@ def get_metric_definitions() -> List[MetricHubDefinition]:
                         if isinstance(metric.owner, str)
                         else metric.owner
                     ),
-                    level=metric.level.value if metric.level else None,
+                    level=metric.level if metric.level else None,
                     friendly_name=(
                         metric.friendly_name if metric.friendly_name else None
                     ),
