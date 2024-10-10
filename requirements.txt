@@ -326,7 +326,7 @@ mixpanel==4.10.1
     # via acryl-datahub
 more-itertools==10.2.0
     # via acryl-datahub
-mozilla-metric-config-parser==2024.8.1
+mozilla-metric-config-parser==2024.9.5
     # via -r requirements.in
 mozilla-nimbus-schemas==2023.10.3
     # via mozilla-metric-config-parser
