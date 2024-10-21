@@ -4,11 +4,11 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.14.1.2
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.14.1.3
     # via -r requirements.in
 acryl-datahub-classify==0.0.11
     # via acryl-datahub
-acryl-sqlglot[rs]==25.20.2.dev6
+acryl-sqlglot[rs]==25.25.2.dev9
     # via acryl-datahub
 aiohappyeyeballs==2.3.5
     # via aiohttp
