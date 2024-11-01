@@ -4,11 +4,9 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.14.1.2
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==0.14.1.6
     # via -r requirements.in
 acryl-datahub-classify==0.0.11
-    # via acryl-datahub
-acryl-sqlglot[rs]==25.20.2.dev6
     # via acryl-datahub
 aiohappyeyeballs==2.3.5
     # via aiohttp
@@ -53,12 +51,16 @@ bleach==6.1.0
     # via nbconvert
 blis==0.7.11
     # via thinc
+bracex==2.5.post1
+    # via wcmatch
 build==1.2.1
     # via pip-tools
 cached-property==1.5.2
     # via acryl-datahub
 cachetools==5.3.3
-    # via google-auth
+    # via
+    #   acryl-datahub
+    #   google-auth
 catalogue==2.0.10
     # via
     #   spacy
@@ -403,8 +405,12 @@ pandas==2.2.1
     #   great-expectations
 pandocfilters==1.5.1
     # via nbconvert
+parse==1.20.2
+    # via acryl-datahub
 parso==0.8.3
     # via jedi
+patchy==2.8.0
+    # via acryl-datahub
 pathlib-abc==0.1.1
     # via pathy
 pathspec==0.12.1
@@ -606,8 +612,10 @@ sqlalchemy==1.4.52
     #   sqlalchemy-bigquery
 sqlalchemy-bigquery==1.10.0
     # via acryl-datahub
+sqlglot[rs]==25.26.0
+    # via acryl-datahub
 sqlglotrs==0.2.12
-    # via acryl-sqlglot
+    # via sqlglot
 sqlparse==0.5.0
     # via acryl-datahub
 srsly==2.4.8
@@ -618,8 +626,6 @@ srsly==2.4.8
 stack-data==0.6.3
     # via ipython
 tabulate==0.9.0
-    # via acryl-datahub
-termcolor==2.4.0
     # via acryl-datahub
 terminado==0.18.1
     # via
@@ -706,6 +712,8 @@ wasabi==1.1.2
     # via
     #   spacy
     #   thinc
+wcmatch==10.0
+    # via acryl-datahub
 wcwidth==0.2.13
     # via prompt-toolkit
 webencodings==0.5.1
