@@ -17,7 +17,7 @@ from sync.datahub.utils import get_current_timestamp
 
 class BigQueryEtlSourceConfig(ConfigModel):
     env: str = "PROD"
-
+    column_limit: int = 4000
 
 class BigQueryEtlSource(Source):
     def __init__(self, config: BigQueryEtlSourceConfig, ctx: PipelineContext):
