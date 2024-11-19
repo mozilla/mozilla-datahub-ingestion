@@ -2,7 +2,7 @@ source:
   type: sync.datahub.bigquery_etl_source.BigQueryEtlSource
   config:
     env: "PROD"
-    column_limit: 4000
+    column_limit: 4500
 
 sink:
   type: "datahub-rest"
