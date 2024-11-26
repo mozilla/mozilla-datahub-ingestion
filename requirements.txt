@@ -682,7 +682,7 @@ tomli==2.0.1
     #   pytest
 toolz==0.12.1
     # via altair
-tornado==6.4.1
+tornado==6.4.2
     # via
     #   ipykernel
     #   jupyter-client
