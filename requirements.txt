@@ -102,7 +102,7 @@ comm==0.2.2
     # via ipywidgets
 confection==0.1.4
     # via thinc
-cryptography==43.0.1
+cryptography==44.0.1
     # via great-expectations
 cymem==2.0.8
     # via
