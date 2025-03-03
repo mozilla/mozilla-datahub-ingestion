@@ -4,5 +4,5 @@ click==8.1.8
 black==25.1.0
 flake8==7.1.2
 yamllint==1.35.1
-pytest==8.3.4
+pytest==8.3.5
 mozilla-metric-config-parser==2024.8.1
