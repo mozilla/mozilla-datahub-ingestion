@@ -769,7 +769,7 @@ widgetsnbextension==4.0.10
     # via ipywidgets
 wrapt==1.16.0
     # via deprecated
-yamllint==1.35.1
+yamllint==1.36.2
     # via -r requirements.in
 yarl==1.17.2
     # via aiohttp
