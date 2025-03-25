@@ -18,6 +18,7 @@ from sync.metrichub import (
 
 GLOSSARY_FILENAME = "metric_hub_glossary.yaml"
 TABLE_TO_METRIC_FILENAME = "datasets.yaml"
+LOOKER_EXPLORE_URL = "https://mozilla.cloud.looker.com/explore"
 
 
 def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
@@ -42,9 +43,15 @@ def _build_metric_dict(metric: MetricHubDefinition) -> Dict:
             f"**SQL Definition:**\n```sql\n{metric.sql_definition.strip()}\n```\n\n"
         )
 
-    if metric.statistics:
+    explore_link = _get_looker_explore_link(metric)
+
+    if explore_link:
         metric_content += "**Explore this metric in Looker:**\n"
-        metric_content += "\n".join(_get_looker_statistics_links(metric))
+        metric_content += explore_link
+
+        if metric.statistics:
+            metric_content += "\n"
+            metric_content += "\n".join(_get_looker_statistics_links(metric))
 
     return {
         "id": metric.urn,
@@ -72,8 +79,23 @@ def _get_metric_level_link_text(level: MetricLevel) -> str:
     return f"[{text}]({url}/{urn})\n\n"
 
 
+def _get_looker_explore_link(metric: MetricHubDefinition) -> List[str]:
+    if metric.data_source is not None:
+        explore = f"metric_definitions_{metric.data_source}"
+        fields = ",".join(
+            [
+                f"{explore}.submission_date",
+                f"{explore}.{metric.name}",
+            ]
+        )
+        title = f"In explore {explore} as {metric.name}"
+
+        return f"[{title}]({LOOKER_EXPLORE_URL}/{metric.product}/{explore}?fields={fields})"
+
+    return None
+
+
 def _get_looker_statistics_links(metric: MetricHubDefinition) -> List[str]:
-    url = "https://mozilla.cloud.looker.com/explore"
     links = []
 
     for statistic in metric.statistics:
@@ -87,7 +109,8 @@ def _get_looker_statistics_links(metric: MetricHubDefinition) -> List[str]:
             )
             title = f"{metric.title_cased_name} {statistic.title_cased_name}"
             links.append(
-                f"[{title}]({url}/{metric.product}/{explore}?fields={fields}&toggle=vis)"
+                f"[{title}]({LOOKER_EXPLORE_URL}/{metric.product}/"
+                + f"{explore}?fields={fields}&toggle=vis)"
             )
 
     return links
