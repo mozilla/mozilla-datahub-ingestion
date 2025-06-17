@@ -471,7 +471,7 @@ proto-plus==1.23.0
     #   google-cloud-datacatalog-lineage
     #   google-cloud-logging
     #   google-cloud-resource-manager
-protobuf==4.25.3
+protobuf==4.25.8
     # via
     #   google-api-core
     #   google-cloud-appengine-logging
