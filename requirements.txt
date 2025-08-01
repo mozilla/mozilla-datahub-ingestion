@@ -440,7 +440,7 @@ pexpect==4.9.0
     # via ipython
 phonenumbers==8.13.0
     # via acryl-datahub-classify
-pip-tools==7.4.1
+pip-tools==7.5.0
     # via -r requirements.in
 platformdirs==4.2.0
     # via black
