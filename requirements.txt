@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==1.2.0.2
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==1.2.0.7
     # via -r requirements.in
 acryl-datahub-classify==0.0.11
     # via acryl-datahub
@@ -305,8 +305,9 @@ jupyter-core==4.12.0
     #   notebook
 jupyter-events==0.10.0
     # via jupyter-server
-jupyter-server==2.11.2
+jupyter-server==2.14.2
     # via
+    #   acryl-datahub
     #   nbclassic
     #   notebook-shim
 jupyter-server-terminals==0.5.3
