@@ -4,7 +4,7 @@
 #
 #    pip-compile
 #
-acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==1.2.0.7
+acryl-datahub[bigquery,datahub-business-glossary,datahub-rest,looker,lookml]==1.2.0.8
     # via -r requirements.in
 acryl-datahub-classify==0.0.11
     # via acryl-datahub
@@ -649,9 +649,9 @@ sqlalchemy==1.4.52
     #   sqlalchemy-bigquery
 sqlalchemy-bigquery==1.10.0
     # via acryl-datahub
-sqlglot[rs]==26.26.0
+sqlglot[rs]==27.12.0
     # via acryl-datahub
-sqlglotrs==0.6.1
+sqlglotrs==0.6.2
     # via sqlglot
 sqlparse==0.5.0
     # via acryl-datahub
