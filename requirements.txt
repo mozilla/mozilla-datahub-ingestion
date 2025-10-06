@@ -84,7 +84,7 @@ cffi==1.16.0
     #   cryptography
 charset-normalizer==3.3.2
     # via requests
-click==8.2.1
+click==8.3.0
     # via
     #   -r requirements.in
     #   acryl-datahub
