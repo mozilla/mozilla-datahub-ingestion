@@ -49,7 +49,7 @@ avro-gen3==0.7.16
     # via acryl-datahub
 beautifulsoup4==4.12.3
     # via nbconvert
-black==25.9.0
+black==25.11.0
     # via -r requirements.in
 bleach==6.1.0
     # via nbconvert
@@ -550,7 +550,7 @@ python-stdnum==1.20
     # via acryl-datahub-classify
 python-utils==3.8.2
     # via progressbar2
-pytokens==0.1.10
+pytokens==0.3.0
     # via black
 pytz==2024.1
     # via
