@@ -1,4 +1,4 @@
-pip-tools==7.5.1
+pip-tools==7.5.2
 acryl-datahub[datahub-rest,bigquery,looker,lookml,datahub-business-glossary]==1.2.0.9
 click==8.3.0
 black==25.11.0
