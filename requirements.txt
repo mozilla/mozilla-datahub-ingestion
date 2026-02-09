@@ -51,7 +51,7 @@ beautifulsoup4==4.12.3
     # via nbconvert
 black==25.11.0
     # via -r requirements.in
-bleach==6.1.0
+bleach[css]==6.1.0
     # via nbconvert
 blis==0.7.11
     # via thinc
@@ -365,7 +365,7 @@ nbclassic==1.0.0
     # via notebook
 nbclient==0.6.3
     # via nbconvert
-nbconvert==7.16.3
+nbconvert==7.17.0
     # via
     #   jupyter-server
     #   nbclassic
@@ -675,7 +675,7 @@ terminado==0.18.1
 thinc==8.1.12
     # via spacy
 tinycss2==1.2.1
-    # via nbconvert
+    # via bleach
 toml==0.10.2
     # via
     #   acryl-datahub
