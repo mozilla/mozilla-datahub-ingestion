@@ -417,6 +417,7 @@ packaging==24.0
     #   spacy
     #   sqlalchemy-bigquery
     #   thinc
+    #   wheel
 pandas==2.2.1
     # via
     #   acryl-great-expectations
@@ -770,7 +771,7 @@ webencodings==0.5.1
     #   tinycss2
 websocket-client==1.7.0
     # via jupyter-server
-wheel==0.43.0
+wheel==0.46.2
     # via pip-tools
 widgetsnbextension==4.0.10
     # via ipywidgets
