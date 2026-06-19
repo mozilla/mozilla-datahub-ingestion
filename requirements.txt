@@ -328,7 +328,7 @@ markupsafe==2.1.5
     # via
     #   jinja2
     #   nbconvert
-marshmallow==3.21.1
+marshmallow==3.26.2
     # via acryl-great-expectations
 matplotlib-inline==0.1.6
     # via
