@@ -303,9 +303,9 @@ jupyter-core==4.12.0
     #   nbconvert
     #   nbformat
     #   notebook
-jupyter-events==0.10.0
+jupyter-events==0.12.1
     # via jupyter-server
-jupyter-server==2.14.2
+jupyter-server==2.20.0
     # via
     #   acryl-datahub
     #   nbclassic
@@ -410,6 +410,7 @@ packaging==24.0
     #   docker
     #   google-cloud-bigquery
     #   ipykernel
+    #   jupyter-events
     #   jupyter-server
     #   marshmallow
     #   nbconvert
