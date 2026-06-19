@@ -49,7 +49,7 @@ avro-gen3==0.7.16
     # via acryl-datahub
 beautifulsoup4==4.12.3
     # via nbconvert
-black==25.11.0
+black==25.12.0
     # via -r requirements.in
 bleach==6.1.0
     # via nbconvert
