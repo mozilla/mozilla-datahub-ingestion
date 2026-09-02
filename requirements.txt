@@ -336,7 +336,7 @@ matplotlib-inline==0.1.6
     #   ipython
 mccabe==0.7.0
     # via flake8
-mistune==3.2.1
+mistune==3.3.0
     # via
     #   acryl-great-expectations
     #   nbconvert
