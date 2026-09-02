@@ -320,7 +320,7 @@ langcodes==3.3.0
     # via spacy
 lkml==1.3.4
     # via acryl-datahub
-looker-sdk==23.0.0
+looker-sdk==26.12.0
     # via acryl-datahub
 makefun==1.15.2
     # via acryl-great-expectations
