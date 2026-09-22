@@ -1,0 +1,33 @@
+---
+# Scheduled through DataHub UI Ingestion. QUICK_SERVICE_ACCOUNT_KEY is a DataHub secret holding
+# the JSON key for a service account with Token Creator on
+# quick-cli@moz-fx-quick-prod.iam.gserviceaccount.com. The source mints a Quick IAP token from it
+# on every run, because those tokens last one hour and cannot be stored.
+#
+# If the key's own account is allowed through Quick's IAP directly, set
+# impersonate_service_account to null and drop the Token Creator grant.
+#
+# Running locally: leave service_account_key out and the source falls back to QUICK_IAP_TOKEN,
+# then to gcloud.
+#
+# TODO: check the DataHub executor can import this repo. Unlike the Looker and BigQuery recipes
+# this uses a custom source, so the executor needs `pip install` of this repo to resolve
+# sync.datahub.quick_source.
+source:
+  type: sync.datahub.quick_source.QuickSource
+  config:
+    env: "PROD"
+    service_account_key: "${QUICK_SERVICE_ACCOUNT_KEY}"
+    stateful_ingestion:
+      # Site names are the dashboard key and people rename folders, so deleted and renamed
+      # sites need soft-deleting. The source reports a failure when it cannot read a site,
+      # which makes the handler skip deletion for that run.
+      enabled: true
+
+pipeline_name: "quick_ingestion_pipeline"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}

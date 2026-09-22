@@ -38,5 +38,25 @@
       }
     },
     "proposedDelta": null
+  },
+  {
+    "auditHeader": null,
+    "proposedSnapshot": {
+      "com.linkedin.pegasus2avro.metadata.snapshot.DataPlatformSnapshot": {
+        "urn": "urn:li:dataPlatform:Quick",
+        "aspects": [
+          {
+            "com.linkedin.pegasus2avro.dataplatform.DataPlatformInfo": {
+              "datasetNameDelimiter": ".",
+              "name": "Quick",
+              "displayName": "Quick",
+              "type": "OTHERS",
+              "logoUrl": "https://quick.mozilla.cloud/favicon.ico"
+            }
+          }
+        ]
+      }
+    },
+    "proposedDelta": null
   }
 ]
