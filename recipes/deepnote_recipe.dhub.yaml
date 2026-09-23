@@ -1,0 +1,22 @@
+---
+# DEEPNOTE_API_KEY is a DataHub secret: a workspace API key from
+# Settings & members > Security > API keys.
+#
+# TODO: confirm the DataHub executor can pip install this repo. This is a custom source, so
+# it cannot resolve sync.datahub.deepnote_source otherwise.
+source:
+  type: sync.datahub.deepnote_source.DeepnoteSource
+  config:
+    env: "PROD"
+    api_key: "${DEEPNOTE_API_KEY}"
+    stateful_ingestion:
+      # Soft-deletes removed apps. Skipped on any run that reported a failure.
+      enabled: true
+
+pipeline_name: "deepnote_ingestion_pipeline"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
