@@ -4,8 +4,9 @@ The Redash source only writes chartInfo and dashboardInfo, so this source writes
 aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, and patches to
 ownership and structuredProperties. Counts come from the STMO views in bigquery-etl.
 
-DataHub doesn't display chart usage statistics, so chart views over the last 30 days are
-also written to a structured property, defined in recipes/redash_structured_properties.json.
+DataHub doesn't display chart usage statistics, so chart views, users, and top users over
+the last 30 days are also written to structured properties, defined in
+recipes/redash_structured_properties.json.
 """
 
 import collections
@@ -47,6 +48,15 @@ from google.oauth2 import service_account
 
 PLATFORM = "redash"
 CHART_VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_30d"
+CHART_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_30d"
+CHART_TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_30d"
+# Same as the dashboard page's top users
+TOP_USER_COUNT = 5
+# The 30 complete days before the run, for the chart properties
+LAST_30_DAYS = """
+    submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+    AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
+"""
 
 
 class RedashUsageSourceConfig(ConfigModel):
@@ -58,8 +68,8 @@ class RedashUsageSourceConfig(ConfigModel):
     # Daily buckets re-emitted each run
     lookback_days: int = 30
     emit_ownership: bool = True
-    # Needs the property definition applied first, or DataHub rejects the patches
-    emit_chart_views_property: bool = True
+    # Needs the property definitions applied first, or DataHub rejects the patches
+    emit_chart_properties: bool = True
     # Overridable so a test recipe can read sandbox copies
     views_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_views_daily"
     owners_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_owners"
@@ -73,7 +83,7 @@ class RedashUsageSourceReport(SourceReport):
     entities_not_in_datahub: int = 0
     daily_usage_aspects: int = 0
     total_usage_aspects: int = 0
-    chart_views_properties: int = 0
+    chart_property_patches: int = 0
     ownership_patches: int = 0
 
 
@@ -197,32 +207,23 @@ class RedashUsageSource(Source):
             self.report.daily_usage_aspects += 1
 
         # Totals over everything the view covers, plus the last 30 complete days. Charts
-        # with no views in those 30 days get 0, so a chart that stops being used doesn't
-        # keep its old count.
+        # with no views in those 30 days still get properties, so a chart that stops being
+        # used doesn't keep its old values.
         totals_query = f"""
             SELECT entity_type, entity_id, SUM(views) AS views,
-              SUM(IF(
-                submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-                AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY),
-                views, 0
-              )) AS views_30d,
+              SUM(IF({LAST_30_DAYS}, views, 0)) AS views_30d,
               MAX(last_viewed_at) AS last_viewed_at
             FROM `{self.config.views_table}`
             GROUP BY entity_type, entity_id
         """
+        chart_views_30d: Dict[str, int] = {}
         for row in client.query(totals_query).result():
             urn = self._entity_urn(row["entity_type"], row["entity_id"])
             if urn not in known_urns:
                 missing_urns.add(urn)
                 continue
             if urn in chart_urns:
-                if self.config.emit_chart_views_property:
-                    patch = _ChartPatchBuilder(urn).set_structured_property(
-                        CHART_VIEWS_PROPERTY, float(row["views_30d"])
-                    )
-                    for mcp in patch.build():
-                        yield self._workunit(mcp)
-                    self.report.chart_views_properties += 1
+                chart_views_30d[urn] = row["views_30d"]
                 continue
             # The dashboard page shows the latest of these as its total views
             aspect = DashboardUsageStatisticsClass(
@@ -234,6 +235,9 @@ class RedashUsageSource(Source):
                 MetadataChangeProposalWrapper(entityUrn=urn, aspect=aspect)
             )
             self.report.total_usage_aspects += 1
+
+        if self.config.emit_chart_properties:
+            yield from self._chart_property_workunits(client, chart_views_30d)
 
         if self.config.emit_ownership:
             owners_query = f"""
@@ -262,6 +266,43 @@ class RedashUsageSource(Source):
                 self.report.ownership_patches += 1
 
         self.report.entities_not_in_datahub = len(missing_urns)
+
+    def _chart_property_workunits(
+        self, client: bigquery.Client, views_30d: Dict[str, int]
+    ) -> Iterable[MetadataWorkUnit]:
+        users_query = f"""
+            SELECT entity_id, user_email, SUM(views) AS views
+            FROM `{self.config.views_table}`
+            WHERE entity_type = 'chart' AND user_email IS NOT NULL AND {LAST_30_DAYS}
+            GROUP BY entity_id, user_email
+        """
+        # urn -> user email -> views
+        users: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
+        for row in client.query(users_query).result():
+            urn = self._entity_urn("chart", row["entity_id"])
+            if urn in views_30d:
+                users[urn][row["user_email"]] = row["views"]
+
+        for urn, views in sorted(views_30d.items()):
+            top_users = sorted(
+                users[urn].items(), key=lambda item: (-item[1], item[0])
+            )[:TOP_USER_COUNT]
+            patch = (
+                _ChartPatchBuilder(urn)
+                .set_structured_property(CHART_VIEWS_PROPERTY, float(views))
+                .set_structured_property(CHART_USERS_PROPERTY, float(len(users[urn])))
+            )
+            if top_users:
+                patch.set_structured_property(
+                    CHART_TOP_USERS_PROPERTY,
+                    [make_user_urn(email) for email, _ in top_users],
+                )
+            else:
+                # Clear users from an earlier window
+                patch.remove_structured_property(CHART_TOP_USERS_PROPERTY)
+            for mcp in patch.build():
+                yield self._workunit(mcp)
+            self.report.chart_property_patches += 1
 
     def _usage_aspect(
         self, urn: str, timestamp_millis: int, users: Dict[Optional[str], _Bucket]

@@ -78,10 +78,28 @@ OWNER_ROWS = [
 ]
 
 
+CHART_USER_ROWS = [
+    {"entity_id": 10, "user_email": email, "views": views}
+    for email, views in [
+        ("alice@mozilla.com", 5),
+        ("bob@mozilla.com", 5),
+        ("carol@mozilla.com", 1),
+        ("dave@mozilla.com", 3),
+        ("erin@mozilla.com", 2),
+        ("frank@mozilla.com", 1),
+    ]
+] + [
+    # Not in DataHub
+    {"entity_id": 99, "user_email": "alice@mozilla.com", "views": 7},
+]
+
+
 def fake_query(sql, job_config=None):
     job = MagicMock()
     if "stmo_entity_owners" in sql:
         job.result.return_value = OWNER_ROWS
+    elif "user_email IS NOT NULL" in sql:
+        job.result.return_value = CHART_USER_ROWS
     elif "SUM(views)" in sql:
         job.result.return_value = TOTAL_ROWS
     else:
@@ -120,6 +138,22 @@ def patch_operations(mcp):
     operations = value["patch"] if isinstance(value, dict) else value
     # Older versions remove the old value before adding the new one
     return [op for op in operations if op["op"] != "remove"]
+
+
+def structured_properties(mcp):
+    """Property urn -> values after the patch, or None if the patch removes it."""
+    assert mcp.changeType == "PATCH"
+    value = json.loads(mcp.aspect.value)
+    operations = value["patch"] if isinstance(value, dict) else value
+    result = {}
+    for operation in operations:
+        urn = operation["path"].split("/")[2]
+        if operation["op"] == "remove":
+            result[urn] = None
+        else:
+            assert operation["value"]["propertyUrn"] == urn
+            result[urn] = operation["value"]["values"]
+    return result
 
 
 def patches(workunits, aspect_name):
@@ -188,24 +222,37 @@ def test_dashboard_total_usage(bigquery_client):
     assert not usage_aspects(workunits, CHART, daily=False)
 
 
-def test_chart_views_property(bigquery_client):
+VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_30d"
+USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_30d"
+TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_30d"
+
+
+def test_chart_properties(bigquery_client):
     source, workunits = run()
 
-    properties = patches(workunits, "structuredProperties")
-    assert set(properties) == {CHART, OTHER_CHART}
-    assert source.report.chart_views_properties == 2
+    chart_patches = patches(workunits, "structuredProperties")
+    assert set(chart_patches) == {CHART, OTHER_CHART}
+    assert source.report.chart_property_patches == 2
 
-    for urn, views in [(CHART, 12.0), (OTHER_CHART, 0.0)]:
-        (operation,) = patch_operations(properties[urn])
-        assert operation["op"] == "add"
-        assert operation["value"] == {
-            "propertyUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
-            "values": [{"double": views}],
-        }
+    # Top users are capped at 5, most views first, then by email
+    assert structured_properties(chart_patches[CHART]) == {
+        VIEWS_PROPERTY: [{"double": 12.0}],
+        USERS_PROPERTY: [{"double": 6.0}],
+        TOP_USERS_PROPERTY: [
+            {"string": f"urn:li:corpuser:{name}@mozilla.com"}
+            for name in ["alice", "bob", "dave", "erin", "carol"]
+        ],
+    }
+    # No views in the last 30 days, so top users from an earlier run are cleared
+    assert structured_properties(chart_patches[OTHER_CHART]) == {
+        VIEWS_PROPERTY: [{"double": 0.0}],
+        USERS_PROPERTY: [{"double": 0.0}],
+        TOP_USERS_PROPERTY: None,
+    }
 
 
-def test_emit_chart_views_property_disabled(bigquery_client):
-    _, workunits = run({"emit_chart_views_property": False})
+def test_emit_chart_properties_disabled(bigquery_client):
+    _, workunits = run({"emit_chart_properties": False})
 
     assert not patches(workunits, "structuredProperties")
     # Dashboard totals still come from the same query
@@ -276,4 +323,5 @@ def test_query_config(bigquery_client):
     assert "`sandbox.test.views`" in daily_call.args[0]
     (parameter,) = daily_call.kwargs["job_config"].query_parameters
     assert (parameter.name, parameter.value) == ("lookback_days", 400)
-    assert "`sandbox.test.stmo_entity_owners`" in calls[2].args[0]
+    assert "`sandbox.test.views`" in calls[2].args[0]
+    assert "`sandbox.test.stmo_entity_owners`" in calls[3].args[0]
