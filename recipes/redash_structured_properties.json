@@ -1,26 +1,27 @@
 [
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_90d",
     "changeType": "UPSERT",
     "aspectName": "propertyDefinition",
     "aspect": {
       "json": {
-        "qualifiedName": "mozilla.redash.views_30d",
-        "displayName": "Redash views (30 days)",
+        "qualifiedName": "mozilla.redash.views_90d",
+        "displayName": "Redash views (90 days)",
         "valueType": "urn:li:dataType:datahub.number",
         "cardinality": "SINGLE",
         "entityTypes": [
-          "urn:li:entityType:datahub.chart"
+          "urn:li:entityType:datahub.chart",
+          "urn:li:entityType:datahub.dashboard"
         ],
-        "description": "Views on sql.telemetry.mozilla.org in the 30 days before the last daily update, counting dashboard renders and query page loads. Charts with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "description": "Views on sql.telemetry.mozilla.org in the 90 days before the last daily update. Chart views count dashboard renders and query page loads, and dashboard views count opens. Charts and dashboards with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
         "immutable": false
       }
     }
   },
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_90d",
     "changeType": "UPSERT",
     "aspectName": "structuredPropertySettings",
     "aspect": {
@@ -36,26 +37,26 @@
   },
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.users_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.users_90d",
     "changeType": "UPSERT",
     "aspectName": "propertyDefinition",
     "aspect": {
       "json": {
-        "qualifiedName": "mozilla.redash.users_30d",
-        "displayName": "Redash users (30 days)",
+        "qualifiedName": "mozilla.redash.users_90d",
+        "displayName": "Redash users (90 days)",
         "valueType": "urn:li:dataType:datahub.number",
         "cardinality": "SINGLE",
         "entityTypes": [
           "urn:li:entityType:datahub.chart"
         ],
-        "description": "Distinct users who viewed this chart on sql.telemetry.mozilla.org in the 30 days before the last daily update, counting dashboard renders and query page loads. Charts with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "description": "Distinct users who viewed this chart on sql.telemetry.mozilla.org in the 90 days before the last daily update, counting dashboard renders and query page loads. Charts with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
         "immutable": false
       }
     }
   },
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.users_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.users_90d",
     "changeType": "UPSERT",
     "aspectName": "structuredPropertySettings",
     "aspect": {
@@ -71,13 +72,13 @@
   },
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.top_users_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.top_users_90d",
     "changeType": "UPSERT",
     "aspectName": "propertyDefinition",
     "aspect": {
       "json": {
-        "qualifiedName": "mozilla.redash.top_users_30d",
-        "displayName": "Redash top users (30 days)",
+        "qualifiedName": "mozilla.redash.top_users_90d",
+        "displayName": "Redash top users (90 days)",
         "valueType": "urn:li:dataType:datahub.urn",
         "typeQualifier": {
           "allowedTypes": [
@@ -88,14 +89,14 @@
         "entityTypes": [
           "urn:li:entityType:datahub.chart"
         ],
-        "description": "Up to 5 users with the most views of this chart on sql.telemetry.mozilla.org in the 30 days before the last daily update, counting dashboard renders and query page loads, most views first. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "description": "Up to 5 users with the most views of this chart on sql.telemetry.mozilla.org in the 90 days before the last daily update, counting dashboard renders and query page loads, most views first. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
         "immutable": false
       }
     }
   },
   {
     "entityType": "structuredProperty",
-    "entityUrn": "urn:li:structuredProperty:mozilla.redash.top_users_30d",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.top_users_90d",
     "changeType": "UPSERT",
     "aspectName": "structuredPropertySettings",
     "aspect": {

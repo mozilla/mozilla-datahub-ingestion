@@ -4,9 +4,10 @@ The Redash source only writes chartInfo and dashboardInfo, so this source writes
 aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, and patches to
 ownership and structuredProperties. Counts come from the STMO views in bigquery-etl.
 
-DataHub doesn't display chart usage statistics, so chart views, users, and top users over
-the last 30 days are also written to structured properties, defined in
-recipes/redash_structured_properties.json.
+Charts and dashboards both get view counts over the last 90 days. DataHub doesn't display
+chart usage statistics, so chart views, users, and top users are also written to structured
+properties, defined in recipes/redash_structured_properties.json. Dashboards get the views
+property too, since the dashboard page labels its count "Total Views" without saying 90 days.
 """
 
 import collections
@@ -47,14 +48,15 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 
 PLATFORM = "redash"
-CHART_VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_30d"
-CHART_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_30d"
-CHART_TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_30d"
+VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_90d"
+CHART_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_90d"
+CHART_TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_90d"
 # Same as the dashboard page's top users
 TOP_USER_COUNT = 5
-# The 30 complete days before the run, for the chart properties
-LAST_30_DAYS = """
-    submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+# The 90 complete days before the run, for dashboard totals and chart properties. The view
+# covers more than this, so objects whose views stop still get 0 instead of keeping old values.
+LAST_90_DAYS = """
+    submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
     AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 """
 
@@ -69,10 +71,10 @@ class RedashUsageSourceConfig(ConfigModel):
     lookback_days: int = 30
     emit_ownership: bool = True
     # Needs the property definitions applied first, or DataHub rejects the patches
-    emit_chart_properties: bool = True
+    emit_structured_properties: bool = True
     # Overridable so a test recipe can read sandbox copies
-    views_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_views_daily"
-    owners_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_owners"
+    views_table: str = "moz-fx-data-shared-prod.stmo.object_views_daily"
+    owners_table: str = "moz-fx-data-shared-prod.stmo.object_owners"
 
 
 @dataclass
@@ -83,11 +85,15 @@ class RedashUsageSourceReport(SourceReport):
     entities_not_in_datahub: int = 0
     daily_usage_aspects: int = 0
     total_usage_aspects: int = 0
-    chart_property_patches: int = 0
+    structured_property_patches: int = 0
     ownership_patches: int = 0
 
 
 class _ChartPatchBuilder(HasStructuredPropertiesPatch, ChartPatchBuilder):
+    pass
+
+
+class _DashboardPatchBuilder(HasStructuredPropertiesPatch, DashboardPatchBuilder):
     pass
 
 
@@ -137,10 +143,11 @@ class RedashUsageSource(Source):
             project=self.config.billing_project, credentials=credentials
         )
 
-    def _entity_urn(self, entity_type: str, entity_id: int) -> str:
-        if entity_type == "chart":
-            return make_chart_urn(PLATFORM, str(entity_id))
-        return make_dashboard_urn(PLATFORM, str(entity_id))
+    def _urn(self, object_type: str, object_id: int) -> str:
+        # The Redash source ingests each visualization as a chart
+        if object_type == "visualization":
+            return make_chart_urn(PLATFORM, str(object_id))
+        return make_dashboard_urn(PLATFORM, str(object_id))
 
     def _workunit(self, mcp) -> MetadataWorkUnit:
         # Not the primary source, so DataHub doesn't add status or browse path aspects
@@ -177,7 +184,7 @@ class RedashUsageSource(Source):
             lambda: collections.defaultdict(_Bucket)
         )
         daily_query = f"""
-            SELECT entity_type, entity_id, submission_date, user_email, views, last_viewed_at
+            SELECT object_type, object_id, submission_date, user_email, views, last_viewed_at
             FROM `{self.config.views_table}`
             WHERE submission_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @lookback_days DAY)
         """
@@ -189,7 +196,7 @@ class RedashUsageSource(Source):
             ]
         )
         for row in client.query(daily_query, job_config=job_config).result():
-            urn = self._entity_urn(row["entity_type"], row["entity_id"])
+            urn = self._urn(row["object_type"], row["object_id"])
             if urn not in known_urns:
                 missing_urns.add(urn)
                 continue
@@ -206,46 +213,50 @@ class RedashUsageSource(Source):
             )
             self.report.daily_usage_aspects += 1
 
-        # Totals over everything the view covers, plus the last 30 complete days. Charts
-        # with no views in those 30 days still get properties, so a chart that stops being
-        # used doesn't keep its old values.
         totals_query = f"""
-            SELECT entity_type, entity_id, SUM(views) AS views,
-              SUM(IF({LAST_30_DAYS}, views, 0)) AS views_30d,
+            SELECT object_type, object_id,
+              SUM(IF({LAST_90_DAYS}, views, 0)) AS views_90d,
               MAX(last_viewed_at) AS last_viewed_at
             FROM `{self.config.views_table}`
-            GROUP BY entity_type, entity_id
+            GROUP BY object_type, object_id
         """
-        chart_views_30d: Dict[str, int] = {}
+        chart_views_90d: Dict[str, int] = {}
         for row in client.query(totals_query).result():
-            urn = self._entity_urn(row["entity_type"], row["entity_id"])
+            urn = self._urn(row["object_type"], row["object_id"])
             if urn not in known_urns:
                 missing_urns.add(urn)
                 continue
             if urn in chart_urns:
-                chart_views_30d[urn] = row["views_30d"]
+                chart_views_90d[urn] = row["views_90d"]
                 continue
-            # The dashboard page shows the latest of these as its total views
+            # The dashboard page shows the latest of these as "Total Views"
             aspect = DashboardUsageStatisticsClass(
                 timestampMillis=run_millis,
-                viewsCount=row["views"],
+                viewsCount=row["views_90d"],
                 lastViewedAt=_to_millis(row["last_viewed_at"]),
             )
             yield self._workunit(
                 MetadataChangeProposalWrapper(entityUrn=urn, aspect=aspect)
             )
             self.report.total_usage_aspects += 1
+            if self.config.emit_structured_properties:
+                patch = _DashboardPatchBuilder(urn).set_structured_property(
+                    VIEWS_PROPERTY, float(row["views_90d"])
+                )
+                for mcp in patch.build():
+                    yield self._workunit(mcp)
+                self.report.structured_property_patches += 1
 
-        if self.config.emit_chart_properties:
-            yield from self._chart_property_workunits(client, chart_views_30d)
+        if self.config.emit_structured_properties:
+            yield from self._chart_property_workunits(client, chart_views_90d)
 
         if self.config.emit_ownership:
             owners_query = f"""
-                SELECT entity_type, entity_id, owner_email
+                SELECT object_type, object_id, owner_email
                 FROM `{self.config.owners_table}`
             """
             for row in client.query(owners_query).result():
-                urn = self._entity_urn(row["entity_type"], row["entity_id"])
+                urn = self._urn(row["object_type"], row["object_id"])
                 if urn not in known_urns:
                     missing_urns.add(urn)
                     continue
@@ -268,28 +279,28 @@ class RedashUsageSource(Source):
         self.report.entities_not_in_datahub = len(missing_urns)
 
     def _chart_property_workunits(
-        self, client: bigquery.Client, views_30d: Dict[str, int]
+        self, client: bigquery.Client, views_90d: Dict[str, int]
     ) -> Iterable[MetadataWorkUnit]:
         users_query = f"""
-            SELECT entity_id, user_email, SUM(views) AS views
+            SELECT object_id, user_email, SUM(views) AS views
             FROM `{self.config.views_table}`
-            WHERE entity_type = 'chart' AND user_email IS NOT NULL AND {LAST_30_DAYS}
-            GROUP BY entity_id, user_email
+            WHERE object_type = 'visualization' AND user_email IS NOT NULL AND {LAST_90_DAYS}
+            GROUP BY object_id, user_email
         """
         # urn -> user email -> views
         users: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
         for row in client.query(users_query).result():
-            urn = self._entity_urn("chart", row["entity_id"])
-            if urn in views_30d:
+            urn = self._urn("visualization", row["object_id"])
+            if urn in views_90d:
                 users[urn][row["user_email"]] = row["views"]
 
-        for urn, views in sorted(views_30d.items()):
+        for urn, views in sorted(views_90d.items()):
             top_users = sorted(
                 users[urn].items(), key=lambda item: (-item[1], item[0])
             )[:TOP_USER_COUNT]
             patch = (
                 _ChartPatchBuilder(urn)
-                .set_structured_property(CHART_VIEWS_PROPERTY, float(views))
+                .set_structured_property(VIEWS_PROPERTY, float(views))
                 .set_structured_property(CHART_USERS_PROPERTY, float(len(users[urn])))
             )
             if top_users:
@@ -302,7 +313,7 @@ class RedashUsageSource(Source):
                 patch.remove_structured_property(CHART_TOP_USERS_PROPERTY)
             for mcp in patch.build():
                 yield self._workunit(mcp)
-            self.report.chart_property_patches += 1
+            self.report.structured_property_patches += 1
 
     def _usage_aspect(
         self, urn: str, timestamp_millis: int, users: Dict[Optional[str], _Bucket]

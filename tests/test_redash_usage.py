@@ -26,10 +26,10 @@ ALICE = "urn:li:corpuser:alice@mozilla.com"
 BOB = "urn:li:corpuser:bob@mozilla.com"
 
 
-def view_row(entity_type, entity_id, day, email, views, hour=12):
+def view_row(object_type, object_id, day, email, views, hour=12):
     return {
-        "entity_type": entity_type,
-        "entity_id": entity_id,
+        "object_type": object_type,
+        "object_id": object_id,
         "submission_date": day,
         "user_email": email,
         "views": views,
@@ -40,46 +40,53 @@ def view_row(entity_type, entity_id, day, email, views, hour=12):
 
 
 DAILY_ROWS = [
-    view_row("chart", 10, DAY_1, "alice@mozilla.com", 3),
-    view_row("chart", 10, DAY_1, "bob@mozilla.com", 5),
-    view_row("chart", 10, DAY_1, None, 2),
-    view_row("chart", 10, DAY_2, "alice@mozilla.com", 1),
-    view_row("chart", 11, DAY_2, "bob@mozilla.com", 4),
+    view_row("visualization", 10, DAY_1, "alice@mozilla.com", 3),
+    view_row("visualization", 10, DAY_1, "bob@mozilla.com", 5),
+    view_row("visualization", 10, DAY_1, None, 2),
+    view_row("visualization", 10, DAY_2, "alice@mozilla.com", 1),
+    view_row("visualization", 11, DAY_2, "bob@mozilla.com", 4),
     view_row("dashboard", 1, DAY_1, "alice@mozilla.com", 2, hour=9),
     view_row("dashboard", 1, DAY_1, "bob@mozilla.com", 1, hour=17),
     # Not in DataHub, e.g. a draft
-    view_row("chart", 99, DAY_1, "alice@mozilla.com", 7),
+    view_row("visualization", 99, DAY_1, "alice@mozilla.com", 7),
     view_row("dashboard", 9, DAY_1, "alice@mozilla.com", 7),
 ]
 
 
-def total_row(entity_type, entity_id, views, views_30d, last_viewed_at=None):
+def total_row(object_type, object_id, views_90d, last_viewed_at=None):
     return {
-        "entity_type": entity_type,
-        "entity_id": entity_id,
-        "views": views,
-        "views_30d": views_30d,
+        "object_type": object_type,
+        "object_id": object_id,
+        "views_90d": views_90d,
         "last_viewed_at": last_viewed_at,
     }
 
 
 TOTAL_ROWS = [
-    total_row("chart", 10, 40, 12),
-    # No views in the last 30 days
-    total_row("chart", 11, 4, 0),
-    total_row("dashboard", 1, 30, 20, datetime.datetime(2026, 9, 2, 8, tzinfo=UTC)),
-    total_row("chart", 99, 7, 7),
+    total_row("visualization", 10, 12),
+    # No views in the last 90 days
+    total_row("visualization", 11, 0),
+    total_row("dashboard", 1, 20, datetime.datetime(2026, 9, 2, 8, tzinfo=UTC)),
+    total_row("visualization", 99, 7),
 ]
 
 OWNER_ROWS = [
-    {"entity_type": "chart", "entity_id": 10, "owner_email": "alice@mozilla.com"},
-    {"entity_type": "dashboard", "entity_id": 1, "owner_email": "bob@mozilla.com"},
-    {"entity_type": "chart", "entity_id": 99, "owner_email": "alice@mozilla.com"},
+    {
+        "object_type": "visualization",
+        "object_id": 10,
+        "owner_email": "alice@mozilla.com",
+    },
+    {"object_type": "dashboard", "object_id": 1, "owner_email": "bob@mozilla.com"},
+    {
+        "object_type": "visualization",
+        "object_id": 99,
+        "owner_email": "alice@mozilla.com",
+    },
 ]
 
 
 CHART_USER_ROWS = [
-    {"entity_id": 10, "user_email": email, "views": views}
+    {"object_id": 10, "user_email": email, "views": views}
     for email, views in [
         ("alice@mozilla.com", 5),
         ("bob@mozilla.com", 5),
@@ -90,17 +97,17 @@ CHART_USER_ROWS = [
     ]
 ] + [
     # Not in DataHub
-    {"entity_id": 99, "user_email": "alice@mozilla.com", "views": 7},
+    {"object_id": 99, "user_email": "alice@mozilla.com", "views": 7},
 ]
 
 
 def fake_query(sql, job_config=None):
     job = MagicMock()
-    if "stmo_entity_owners" in sql:
+    if "owner_email" in sql:
         job.result.return_value = OWNER_ROWS
     elif "user_email IS NOT NULL" in sql:
         job.result.return_value = CHART_USER_ROWS
-    elif "SUM(views)" in sql:
+    elif "views_90d" in sql:
         job.result.return_value = TOTAL_ROWS
     else:
         job.result.return_value = DAILY_ROWS
@@ -215,27 +222,27 @@ def test_dashboard_total_usage(bigquery_client):
     _, workunits = run()
 
     (dashboard_total,) = usage_aspects(workunits, DASHBOARD, daily=False)
-    assert dashboard_total.viewsCount == 30
+    assert dashboard_total.viewsCount == 20
     assert dashboard_total.lastViewedAt == 1788336000000  # 2026-09-02 08:00 UTC
 
     # DataHub doesn't show chart totals, so charts only get daily buckets
     assert not usage_aspects(workunits, CHART, daily=False)
 
 
-VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_30d"
-USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_30d"
-TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_30d"
+VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_90d"
+USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_90d"
+TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_90d"
 
 
-def test_chart_properties(bigquery_client):
+def test_structured_properties(bigquery_client):
     source, workunits = run()
 
-    chart_patches = patches(workunits, "structuredProperties")
-    assert set(chart_patches) == {CHART, OTHER_CHART}
-    assert source.report.chart_property_patches == 2
+    property_patches = patches(workunits, "structuredProperties")
+    assert set(property_patches) == {CHART, OTHER_CHART, DASHBOARD}
+    assert source.report.structured_property_patches == 3
 
     # Top users are capped at 5, most views first, then by email
-    assert structured_properties(chart_patches[CHART]) == {
+    assert structured_properties(property_patches[CHART]) == {
         VIEWS_PROPERTY: [{"double": 12.0}],
         USERS_PROPERTY: [{"double": 6.0}],
         TOP_USERS_PROPERTY: [
@@ -243,16 +250,20 @@ def test_chart_properties(bigquery_client):
             for name in ["alice", "bob", "dave", "erin", "carol"]
         ],
     }
-    # No views in the last 30 days, so top users from an earlier run are cleared
-    assert structured_properties(chart_patches[OTHER_CHART]) == {
+    # No views in the last 90 days, so top users from an earlier run are cleared
+    assert structured_properties(property_patches[OTHER_CHART]) == {
         VIEWS_PROPERTY: [{"double": 0.0}],
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
+    # Dashboards only get views, since DataHub shows their users itself
+    assert structured_properties(property_patches[DASHBOARD]) == {
+        VIEWS_PROPERTY: [{"double": 20.0}],
+    }
 
 
-def test_emit_chart_properties_disabled(bigquery_client):
-    _, workunits = run({"emit_chart_properties": False})
+def test_emit_structured_properties_disabled(bigquery_client):
+    _, workunits = run({"emit_structured_properties": False})
 
     assert not patches(workunits, "structuredProperties")
     # Dashboard totals still come from the same query
@@ -291,7 +302,7 @@ def test_emit_ownership_disabled(bigquery_client):
     queries = [
         call.args[0] for call in bigquery_client.return_value.query.call_args_list
     ]
-    assert not [sql for sql in queries if "stmo_entity_owners" in sql]
+    assert not [sql for sql in queries if "owner_email" in sql]
 
 
 def test_no_status_aspects(bigquery_client):
@@ -313,7 +324,7 @@ def test_query_config(bigquery_client):
             "billing_project": "billing",
             "lookback_days": 400,
             "views_table": "sandbox.test.views",
-            "owners_table": "sandbox.test.stmo_entity_owners",
+            "owners_table": "sandbox.test.owners",
         }
     )
 
@@ -324,4 +335,4 @@ def test_query_config(bigquery_client):
     (parameter,) = daily_call.kwargs["job_config"].query_parameters
     assert (parameter.name, parameter.value) == ("lookback_days", 400)
     assert "`sandbox.test.views`" in calls[2].args[0]
-    assert "`sandbox.test.stmo_entity_owners`" in calls[3].args[0]
+    assert "`sandbox.test.owners`" in calls[3].args[0]
