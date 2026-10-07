@@ -13,6 +13,10 @@ To bootstrap the custom platforms we ingest metadata for, run the `platform_reci
 
 `$ DATAHUB_GMS_URL=... DATAHUB_GMS_TOKEN=... datahub ingest -c recipes/platform_recipe.dhub.yaml`
 
+The Redash usage source writes to structured properties that must exist first. Create or update them with:
+
+`$ DATAHUB_GMS_URL=... DATAHUB_GMS_TOKEN=... datahub ingest -c recipes/redash_structured_properties_recipe.dhub.yaml`
+
 All other recipes can be found in the `recipes` directory and can be run similarly using the `datahub ingest` command.
 
 ## Development

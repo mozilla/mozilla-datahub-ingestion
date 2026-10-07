@@ -1,0 +1,37 @@
+[
+  {
+    "entityType": "structuredProperty",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
+    "changeType": "UPSERT",
+    "aspectName": "propertyDefinition",
+    "aspect": {
+      "json": {
+        "qualifiedName": "mozilla.redash.views_30d",
+        "displayName": "Redash views (30 days)",
+        "valueType": "urn:li:dataType:datahub.number",
+        "cardinality": "SINGLE",
+        "entityTypes": [
+          "urn:li:entityType:datahub.chart"
+        ],
+        "description": "Views on sql.telemetry.mozilla.org in the 30 days before the last daily update, counting dashboard renders and query page loads. Charts with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "immutable": false
+      }
+    }
+  },
+  {
+    "entityType": "structuredProperty",
+    "entityUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
+    "changeType": "UPSERT",
+    "aspectName": "structuredPropertySettings",
+    "aspect": {
+      "json": {
+        "isHidden": false,
+        "showInSearchFilters": false,
+        "showInAssetSummary": true,
+        "hideInAssetSummaryWhenEmpty": true,
+        "showAsAssetBadge": false,
+        "showInColumnsTable": false
+      }
+    }
+  }
+]

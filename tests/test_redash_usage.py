@@ -52,16 +52,23 @@ DAILY_ROWS = [
     view_row("dashboard", 9, DAY_1, "alice@mozilla.com", 7),
 ]
 
+
+def total_row(entity_type, entity_id, views, views_30d, last_viewed_at=None):
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "views": views,
+        "views_30d": views_30d,
+        "last_viewed_at": last_viewed_at,
+    }
+
+
 TOTAL_ROWS = [
-    {"entity_type": "chart", "entity_id": 10, "views": 40, "last_viewed_at": None},
-    {"entity_type": "chart", "entity_id": 11, "views": 4, "last_viewed_at": None},
-    {
-        "entity_type": "dashboard",
-        "entity_id": 1,
-        "views": 30,
-        "last_viewed_at": datetime.datetime(2026, 9, 2, 8, tzinfo=UTC),
-    },
-    {"entity_type": "chart", "entity_id": 99, "views": 7, "last_viewed_at": None},
+    total_row("chart", 10, 40, 12),
+    # No views in the last 30 days
+    total_row("chart", 11, 4, 0),
+    total_row("dashboard", 1, 30, 20, datetime.datetime(2026, 9, 2, 8, tzinfo=UTC)),
+    total_row("chart", 99, 7, 7),
 ]
 
 OWNER_ROWS = [
@@ -104,6 +111,23 @@ def run(config=None):
     source = make_source(config)
     workunits = list(source.get_workunits())
     return source, workunits
+
+
+def patch_operations(mcp):
+    assert mcp.changeType == "PATCH"
+    value = json.loads(mcp.aspect.value)
+    # Newer DataHub versions wrap the operations with array keys
+    operations = value["patch"] if isinstance(value, dict) else value
+    # Older versions remove the old value before adding the new one
+    return [op for op in operations if op["op"] != "remove"]
+
+
+def patches(workunits, aspect_name):
+    return {
+        wu.get_urn(): wu.metadata
+        for wu in workunits
+        if wu.metadata.aspectName == aspect_name
+    }
 
 
 def usage_aspects(workunits, urn, daily):
@@ -153,16 +177,39 @@ def test_dashboard_daily_usage(bigquery_client):
     ]
 
 
-def test_total_usage(bigquery_client):
+def test_dashboard_total_usage(bigquery_client):
     _, workunits = run()
-
-    (chart_total,) = usage_aspects(workunits, CHART, daily=False)
-    assert chart_total.viewsCount == 40
-    assert chart_total.userCounts is None
 
     (dashboard_total,) = usage_aspects(workunits, DASHBOARD, daily=False)
     assert dashboard_total.viewsCount == 30
     assert dashboard_total.lastViewedAt == 1788336000000  # 2026-09-02 08:00 UTC
+
+    # DataHub doesn't show chart totals, so charts only get daily buckets
+    assert not usage_aspects(workunits, CHART, daily=False)
+
+
+def test_chart_views_property(bigquery_client):
+    source, workunits = run()
+
+    properties = patches(workunits, "structuredProperties")
+    assert set(properties) == {CHART, OTHER_CHART}
+    assert source.report.chart_views_properties == 2
+
+    for urn, views in [(CHART, 12.0), (OTHER_CHART, 0.0)]:
+        (operation,) = patch_operations(properties[urn])
+        assert operation["op"] == "add"
+        assert operation["value"] == {
+            "propertyUrn": "urn:li:structuredProperty:mozilla.redash.views_30d",
+            "values": [{"double": views}],
+        }
+
+
+def test_emit_chart_views_property_disabled(bigquery_client):
+    _, workunits = run({"emit_chart_views_property": False})
+
+    assert not patches(workunits, "structuredProperties")
+    # Dashboard totals still come from the same query
+    assert usage_aspects(workunits, DASHBOARD, daily=False)
 
 
 def test_entities_missing_from_datahub_are_skipped(bigquery_client):
@@ -178,30 +225,22 @@ def test_entities_missing_from_datahub_are_skipped(bigquery_client):
 def test_ownership_patches(bigquery_client):
     source, workunits = run()
 
-    patches = {
-        wu.get_urn(): wu.metadata
-        for wu in workunits
-        if wu.metadata.aspectName == "ownership"
-    }
-    assert set(patches) == {CHART, DASHBOARD}
+    owners = patches(workunits, "ownership")
+    assert set(owners) == {CHART, DASHBOARD}
     assert source.report.ownership_patches == 2
 
     for urn, owner in [(CHART, ALICE), (DASHBOARD, BOB)]:
-        mcp = patches[urn]
-        assert mcp.changeType == "PATCH"
-        value = json.loads(mcp.aspect.value)
-        # Newer DataHub versions wrap the operations with array keys
-        operations = value["patch"] if isinstance(value, dict) else value
-        assert [op["op"] for op in operations] == ["add"]
-        assert operations[0]["value"]["owner"] == owner
-        assert operations[0]["value"]["type"] == "TECHNICAL_OWNER"
-        assert operations[0]["value"]["source"]["type"] == "SERVICE"
+        (operation,) = patch_operations(owners[urn])
+        assert operation["op"] == "add"
+        assert operation["value"]["owner"] == owner
+        assert operation["value"]["type"] == "TECHNICAL_OWNER"
+        assert operation["value"]["source"]["type"] == "SERVICE"
 
 
 def test_emit_ownership_disabled(bigquery_client):
     _, workunits = run({"emit_ownership": False})
 
-    assert not [wu for wu in workunits if wu.metadata.aspectName == "ownership"]
+    assert not patches(workunits, "ownership")
     queries = [
         call.args[0] for call in bigquery_client.return_value.query.call_args_list
     ]

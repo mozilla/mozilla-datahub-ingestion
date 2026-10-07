@@ -1,8 +1,11 @@
 """Usage statistics and owners for the Redash charts and dashboards in DataHub.
 
 The Redash source only writes chartInfo and dashboardInfo, so this source writes the
-aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, and ownership
-(as a patch). Counts come from the STMO views in bigquery-etl.
+aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, and patches to
+ownership and structuredProperties. Counts come from the STMO views in bigquery-etl.
+
+DataHub doesn't display chart usage statistics, so chart views over the last 30 days are
+also written to a structured property, defined in recipes/redash_structured_properties.json.
 """
 
 import collections
@@ -34,12 +37,16 @@ from datahub.metadata.schema_classes import (
     OwnershipTypeClass,
     TimeWindowSizeClass,
 )
+from datahub.specific.aspect_helpers.structured_properties import (
+    HasStructuredPropertiesPatch,
+)
 from datahub.specific.chart import ChartPatchBuilder
 from datahub.specific.dashboard import DashboardPatchBuilder
 from google.cloud import bigquery
 from google.oauth2 import service_account
 
 PLATFORM = "redash"
+CHART_VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_30d"
 
 
 class RedashUsageSourceConfig(ConfigModel):
@@ -51,6 +58,8 @@ class RedashUsageSourceConfig(ConfigModel):
     # Daily buckets re-emitted each run
     lookback_days: int = 30
     emit_ownership: bool = True
+    # Needs the property definition applied first, or DataHub rejects the patches
+    emit_chart_views_property: bool = True
     # Overridable so a test recipe can read sandbox copies
     views_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_views_daily"
     owners_table: str = "moz-fx-data-shared-prod.monitoring.stmo_entity_owners"
@@ -64,7 +73,12 @@ class RedashUsageSourceReport(SourceReport):
     entities_not_in_datahub: int = 0
     daily_usage_aspects: int = 0
     total_usage_aspects: int = 0
+    chart_views_properties: int = 0
     ownership_patches: int = 0
+
+
+class _ChartPatchBuilder(HasStructuredPropertiesPatch, ChartPatchBuilder):
+    pass
 
 
 @dataclass
@@ -182,9 +196,16 @@ class RedashUsageSource(Source):
             )
             self.report.daily_usage_aspects += 1
 
-        # One absolute aspect per entity, over everything the view covers
+        # Totals over everything the view covers, plus the last 30 complete days. Charts
+        # with no views in those 30 days get 0, so a chart that stops being used doesn't
+        # keep its old count.
         totals_query = f"""
             SELECT entity_type, entity_id, SUM(views) AS views,
+              SUM(IF(
+                submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+                AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY),
+                views, 0
+              )) AS views_30d,
               MAX(last_viewed_at) AS last_viewed_at
             FROM `{self.config.views_table}`
             GROUP BY entity_type, entity_id
@@ -195,15 +216,20 @@ class RedashUsageSource(Source):
                 missing_urns.add(urn)
                 continue
             if urn in chart_urns:
-                aspect = ChartUsageStatisticsClass(
-                    timestampMillis=run_millis, viewsCount=row["views"]
-                )
-            else:
-                aspect = DashboardUsageStatisticsClass(
-                    timestampMillis=run_millis,
-                    viewsCount=row["views"],
-                    lastViewedAt=_to_millis(row["last_viewed_at"]),
-                )
+                if self.config.emit_chart_views_property:
+                    patch = _ChartPatchBuilder(urn).set_structured_property(
+                        CHART_VIEWS_PROPERTY, float(row["views_30d"])
+                    )
+                    for mcp in patch.build():
+                        yield self._workunit(mcp)
+                    self.report.chart_views_properties += 1
+                continue
+            # The dashboard page shows the latest of these as its total views
+            aspect = DashboardUsageStatisticsClass(
+                timestampMillis=run_millis,
+                viewsCount=row["views"],
+                lastViewedAt=_to_millis(row["last_viewed_at"]),
+            )
             yield self._workunit(
                 MetadataChangeProposalWrapper(entityUrn=urn, aspect=aspect)
             )
