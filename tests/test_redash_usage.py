@@ -1,0 +1,240 @@
+import datetime
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+from datahub.emitter.mcp import MetadataChangeProposalWrapper
+from datahub.ingestion.api.common import PipelineContext
+from datahub.metadata.schema_classes import (
+    ChartUsageStatisticsClass,
+    DashboardUsageStatisticsClass,
+    StatusClass,
+)
+
+from sync.datahub.redash_usage_source import RedashUsageSource
+
+UTC = datetime.timezone.utc
+DAY_1 = datetime.date(2026, 9, 1)
+DAY_2 = datetime.date(2026, 9, 2)
+DAY_1_MILLIS = 1788220800000  # 2026-09-01 00:00 UTC
+DAY_2_MILLIS = DAY_1_MILLIS + 86400000
+
+CHART = "urn:li:chart:(redash,10)"
+OTHER_CHART = "urn:li:chart:(redash,11)"
+DASHBOARD = "urn:li:dashboard:(redash,1)"
+ALICE = "urn:li:corpuser:alice@mozilla.com"
+BOB = "urn:li:corpuser:bob@mozilla.com"
+
+
+def view_row(entity_type, entity_id, day, email, views, hour=12):
+    return {
+        "entity_type": entity_type,
+        "entity_id": entity_id,
+        "submission_date": day,
+        "user_email": email,
+        "views": views,
+        "last_viewed_at": datetime.datetime.combine(
+            day, datetime.time(hour), tzinfo=UTC
+        ),
+    }
+
+
+DAILY_ROWS = [
+    view_row("chart", 10, DAY_1, "alice@mozilla.com", 3),
+    view_row("chart", 10, DAY_1, "bob@mozilla.com", 5),
+    view_row("chart", 10, DAY_1, None, 2),
+    view_row("chart", 10, DAY_2, "alice@mozilla.com", 1),
+    view_row("chart", 11, DAY_2, "bob@mozilla.com", 4),
+    view_row("dashboard", 1, DAY_1, "alice@mozilla.com", 2, hour=9),
+    view_row("dashboard", 1, DAY_1, "bob@mozilla.com", 1, hour=17),
+    # Not in DataHub, e.g. a draft
+    view_row("chart", 99, DAY_1, "alice@mozilla.com", 7),
+    view_row("dashboard", 9, DAY_1, "alice@mozilla.com", 7),
+]
+
+TOTAL_ROWS = [
+    {"entity_type": "chart", "entity_id": 10, "views": 40, "last_viewed_at": None},
+    {"entity_type": "chart", "entity_id": 11, "views": 4, "last_viewed_at": None},
+    {
+        "entity_type": "dashboard",
+        "entity_id": 1,
+        "views": 30,
+        "last_viewed_at": datetime.datetime(2026, 9, 2, 8, tzinfo=UTC),
+    },
+    {"entity_type": "chart", "entity_id": 99, "views": 7, "last_viewed_at": None},
+]
+
+OWNER_ROWS = [
+    {"entity_type": "chart", "entity_id": 10, "owner_email": "alice@mozilla.com"},
+    {"entity_type": "dashboard", "entity_id": 1, "owner_email": "bob@mozilla.com"},
+    {"entity_type": "chart", "entity_id": 99, "owner_email": "alice@mozilla.com"},
+]
+
+
+def fake_query(sql, job_config=None):
+    job = MagicMock()
+    if "stmo_entity_owners" in sql:
+        job.result.return_value = OWNER_ROWS
+    elif "SUM(views)" in sql:
+        job.result.return_value = TOTAL_ROWS
+    else:
+        job.result.return_value = DAILY_ROWS
+    return job
+
+
+@pytest.fixture
+def bigquery_client():
+    with patch("sync.datahub.redash_usage_source.bigquery.Client") as client_class:
+        client = client_class.return_value
+        client.query.side_effect = fake_query
+        yield client_class
+
+
+def make_source(config=None):
+    graph = MagicMock()
+    graph.get_urns_by_filter.side_effect = lambda entity_types, platform: {
+        "chart": [CHART, OTHER_CHART],
+        "dashboard": [DASHBOARD],
+    }[entity_types[0]]
+    ctx = PipelineContext(run_id="test", graph=graph)
+    return RedashUsageSource.create(config or {}, ctx)
+
+
+def run(config=None):
+    source = make_source(config)
+    workunits = list(source.get_workunits())
+    return source, workunits
+
+
+def usage_aspects(workunits, urn, daily):
+    aspects = [
+        wu.metadata.aspect
+        for wu in workunits
+        if isinstance(wu.metadata, MetadataChangeProposalWrapper)
+        and wu.metadata.entityUrn == urn
+        and isinstance(
+            wu.metadata.aspect,
+            (ChartUsageStatisticsClass, DashboardUsageStatisticsClass),
+        )
+        and (wu.metadata.aspect.eventGranularity is not None) == daily
+    ]
+    return sorted(aspects, key=lambda aspect: aspect.timestampMillis)
+
+
+def test_chart_daily_usage(bigquery_client):
+    _, workunits = run()
+    day_1, day_2 = usage_aspects(workunits, CHART, daily=True)
+
+    assert day_1.timestampMillis == DAY_1_MILLIS
+    assert day_1.eventGranularity.unit == "DAY"
+    assert day_1.eventGranularity.multiple == 1
+    # The row with no email counts toward views but not users
+    assert day_1.viewsCount == 10
+    assert day_1.uniqueUserCount == 2
+    assert [(c.user, c.viewsCount) for c in day_1.userCounts] == [(BOB, 5), (ALICE, 3)]
+
+    assert day_2.timestampMillis == DAY_2_MILLIS
+    assert day_2.viewsCount == 1
+    assert [(c.user, c.viewsCount) for c in day_2.userCounts] == [(ALICE, 1)]
+
+
+def test_dashboard_daily_usage(bigquery_client):
+    _, workunits = run()
+    (day_1,) = usage_aspects(workunits, DASHBOARD, daily=True)
+
+    assert isinstance(day_1, DashboardUsageStatisticsClass)
+    assert day_1.timestampMillis == DAY_1_MILLIS
+    assert day_1.viewsCount == 3
+    assert day_1.uniqueUserCount == 2
+    assert day_1.lastViewedAt == DAY_1_MILLIS + 17 * 3600000
+    assert [(c.user, c.viewsCount, c.userEmail) for c in day_1.userCounts] == [
+        (ALICE, 2, "alice@mozilla.com"),
+        (BOB, 1, "bob@mozilla.com"),
+    ]
+
+
+def test_total_usage(bigquery_client):
+    _, workunits = run()
+
+    (chart_total,) = usage_aspects(workunits, CHART, daily=False)
+    assert chart_total.viewsCount == 40
+    assert chart_total.userCounts is None
+
+    (dashboard_total,) = usage_aspects(workunits, DASHBOARD, daily=False)
+    assert dashboard_total.viewsCount == 30
+    assert dashboard_total.lastViewedAt == 1788336000000  # 2026-09-02 08:00 UTC
+
+
+def test_entities_missing_from_datahub_are_skipped(bigquery_client):
+    source, workunits = run()
+
+    urns = {wu.get_urn() for wu in workunits}
+    assert urns == {CHART, OTHER_CHART, DASHBOARD}
+    assert source.report.entities_not_in_datahub == 2
+    assert source.report.charts_in_datahub == 2
+    assert source.report.dashboards_in_datahub == 1
+
+
+def test_ownership_patches(bigquery_client):
+    source, workunits = run()
+
+    patches = {
+        wu.get_urn(): wu.metadata
+        for wu in workunits
+        if wu.metadata.aspectName == "ownership"
+    }
+    assert set(patches) == {CHART, DASHBOARD}
+    assert source.report.ownership_patches == 2
+
+    for urn, owner in [(CHART, ALICE), (DASHBOARD, BOB)]:
+        mcp = patches[urn]
+        assert mcp.changeType == "PATCH"
+        value = json.loads(mcp.aspect.value)
+        # Newer DataHub versions wrap the operations with array keys
+        operations = value["patch"] if isinstance(value, dict) else value
+        assert [op["op"] for op in operations] == ["add"]
+        assert operations[0]["value"]["owner"] == owner
+        assert operations[0]["value"]["type"] == "TECHNICAL_OWNER"
+        assert operations[0]["value"]["source"]["type"] == "SERVICE"
+
+
+def test_emit_ownership_disabled(bigquery_client):
+    _, workunits = run({"emit_ownership": False})
+
+    assert not [wu for wu in workunits if wu.metadata.aspectName == "ownership"]
+    queries = [
+        call.args[0] for call in bigquery_client.return_value.query.call_args_list
+    ]
+    assert not [sql for sql in queries if "stmo_entity_owners" in sql]
+
+
+def test_no_status_aspects(bigquery_client):
+    # Status belongs to the Redash source, so this source must not add one
+    _, workunits = run()
+
+    assert all(not wu.is_primary_source for wu in workunits)
+    assert not [
+        wu
+        for wu in workunits
+        if wu.metadata.aspectName == "status"
+        or isinstance(getattr(wu.metadata, "aspect", None), StatusClass)
+    ]
+
+
+def test_query_config(bigquery_client):
+    run(
+        {
+            "billing_project": "billing",
+            "lookback_days": 400,
+            "views_table": "sandbox.test.views",
+            "owners_table": "sandbox.test.stmo_entity_owners",
+        }
+    )
+
+    bigquery_client.assert_called_once_with(project="billing", credentials=None)
+    calls = bigquery_client.return_value.query.call_args_list
+    daily_call = calls[0]
+    assert "`sandbox.test.views`" in daily_call.args[0]
+    (parameter,) = daily_call.kwargs["job_config"].query_parameters
+    assert (parameter.name, parameter.value) == ("lookback_days", 400)
+    assert "`sandbox.test.stmo_entity_owners`" in calls[2].args[0]
