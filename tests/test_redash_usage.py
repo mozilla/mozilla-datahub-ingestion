@@ -8,10 +8,14 @@ from datahub.ingestion.api.common import PipelineContext
 from datahub.metadata.schema_classes import (
     ChartUsageStatisticsClass,
     DashboardUsageStatisticsClass,
+    OwnerClass,
+    OwnershipClass,
+    OwnershipSourceClass,
     StatusClass,
 )
 
-from sync.datahub.redash_usage_source import RedashUsageSource
+from sync.datahub import redash_usage_source
+from sync.datahub.redash_usage_source import OWNER_SOURCE_URL, RedashUsageSource
 
 UTC = datetime.timezone.utc
 DAY_1 = datetime.date(2026, 9, 1)
@@ -122,29 +126,28 @@ def bigquery_client():
         yield client_class
 
 
-def make_source(config=None):
+def make_source(config=None, ownership=None):
+    """ownership maps urns to the owners DataHub already has for them."""
+    ownership = ownership or {}
     graph = MagicMock()
     graph.get_urns_by_filter.side_effect = lambda entity_types, platform: {
         "chart": [CHART, OTHER_CHART],
         "dashboard": [DASHBOARD],
     }[entity_types[0]]
+    # Like DataHub, entities with no ownership aspect are left out
+    graph.get_entities.side_effect = lambda entity_type, urns, aspects: {
+        urn: {"ownership": (OwnershipClass(owners=ownership[urn]), None)}
+        for urn in urns
+        if urn in ownership
+    }
     ctx = PipelineContext(run_id="test", graph=graph)
     return RedashUsageSource.create(config or {}, ctx)
 
 
-def run(config=None):
-    source = make_source(config)
+def run(config=None, ownership=None):
+    source = make_source(config, ownership)
     workunits = list(source.get_workunits())
     return source, workunits
-
-
-def patch_operations(mcp):
-    assert mcp.changeType == "PATCH"
-    value = json.loads(mcp.aspect.value)
-    # Newer DataHub versions wrap the operations with array keys
-    operations = value["patch"] if isinstance(value, dict) else value
-    # Older versions remove the old value before adding the new one
-    return [op for op in operations if op["op"] != "remove"]
 
 
 def structured_properties(mcp):
@@ -280,25 +283,113 @@ def test_entities_missing_from_datahub_are_skipped(bigquery_client):
     assert source.report.dashboards_in_datahub == 1
 
 
-def test_ownership_patches(bigquery_client):
+def owner(
+    user, source_type="SERVICE", url=OWNER_SOURCE_URL, owner_type="TECHNICAL_OWNER"
+):
+    return OwnerClass(
+        owner=user,
+        type=owner_type,
+        source=OwnershipSourceClass(type=source_type, url=url),
+    )
+
+
+def owner_keys(aspect):
+    return [
+        (
+            o.owner,
+            o.type,
+            o.source.type if o.source else None,
+            o.source.url if o.source else None,
+        )
+        for o in aspect.owners
+    ]
+
+
+def ownership_aspects(workunits):
+    return {
+        wu.get_urn(): wu.metadata.aspect
+        for wu in workunits
+        if wu.metadata.aspectName == "ownership"
+    }
+
+
+def test_ownership(bigquery_client):
     source, workunits = run()
 
-    owners = patches(workunits, "ownership")
-    assert set(owners) == {CHART, DASHBOARD}
-    assert source.report.ownership_patches == 2
+    aspects = ownership_aspects(workunits)
+    # OTHER_CHART has no owner in either place, so it isn't written
+    assert set(aspects) == {CHART, DASHBOARD}
+    assert source.report.ownership_updates == 2
+    assert all(
+        wu.metadata.changeType == "UPSERT"
+        for wu in workunits
+        if wu.metadata.aspectName == "ownership"
+    )
+    assert owner_keys(aspects[CHART]) == [
+        (ALICE, "TECHNICAL_OWNER", "SERVICE", OWNER_SOURCE_URL)
+    ]
+    assert owner_keys(aspects[DASHBOARD]) == [
+        (BOB, "TECHNICAL_OWNER", "SERVICE", OWNER_SOURCE_URL)
+    ]
 
-    for urn, owner in [(CHART, ALICE), (DASHBOARD, BOB)]:
-        (operation,) = patch_operations(owners[urn])
-        assert operation["op"] == "add"
-        assert operation["value"]["owner"] == owner
-        assert operation["value"]["type"] == "TECHNICAL_OWNER"
-        assert operation["value"]["source"]["type"] == "SERVICE"
+
+def test_ownership_replaces_previous_owner(bigquery_client):
+    carol = "urn:li:corpuser:carol@mozilla.com"
+    _, workunits = run(
+        ownership={
+            CHART: [
+                # Added by a run from before OWNER_SOURCE_URL was set
+                owner(BOB, url=None),
+                # Added in the UI
+                owner(carol, source_type="MANUAL", url=None, owner_type="DATAOWNER"),
+            ]
+        }
+    )
+
+    assert owner_keys(ownership_aspects(workunits)[CHART]) == [
+        (carol, "DATAOWNER", "MANUAL", None),
+        (ALICE, "TECHNICAL_OWNER", "SERVICE", OWNER_SOURCE_URL),
+    ]
+
+
+def test_ownership_removed_when_redash_owner_is_gone(bigquery_client):
+    other_service = "https://example.com/other-source"
+    _, workunits = run(
+        ownership={OTHER_CHART: [owner(ALICE), owner(BOB, url=other_service)]}
+    )
+
+    # Only this source's owner is removed
+    assert owner_keys(ownership_aspects(workunits)[OTHER_CHART]) == [
+        (BOB, "TECHNICAL_OWNER", "SERVICE", other_service)
+    ]
+
+
+def test_unchanged_ownership_is_skipped(bigquery_client):
+    source, workunits = run(ownership={CHART: [owner(ALICE)], DASHBOARD: [owner(BOB)]})
+
+    assert not ownership_aspects(workunits)
+    assert source.report.ownership_updates == 0
+
+
+def test_ownership_read_in_batches(bigquery_client, monkeypatch):
+    monkeypatch.setattr(redash_usage_source, "OWNERSHIP_BATCH_SIZE", 1)
+    source = make_source()
+    list(source.get_workunits())
+
+    calls = source.ctx.graph.get_entities.call_args_list
+    assert [(c.args[0], c.args[1]) for c in calls] == [
+        ("chart", [CHART]),
+        ("chart", [OTHER_CHART]),
+        ("dashboard", [DASHBOARD]),
+    ]
 
 
 def test_emit_ownership_disabled(bigquery_client):
-    _, workunits = run({"emit_ownership": False})
+    source = make_source({"emit_ownership": False})
+    workunits = list(source.get_workunits())
 
-    assert not patches(workunits, "ownership")
+    assert not ownership_aspects(workunits)
+    assert not source.ctx.graph.get_entities.called
     queries = [
         call.args[0] for call in bigquery_client.return_value.query.call_args_list
     ]

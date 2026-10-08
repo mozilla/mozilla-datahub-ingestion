@@ -61,7 +61,7 @@ The source's settings in Acryl:
   The order relative to the Redash source doesn't matter, since the two write different aspects.
 
 The executor runs a newer DataHub CLI than `requirements.txt` pins (1.7 on Python 3.11 as of
-October 2026), so test changes to this source against that version as well. Applysww
+October 2026), so test changes to this source against that version as well. Apply
 `redash_structured_properties_recipe.dhub.yaml` before deploying a change that adds or renames a
 structured property, or DataHub rejects the source's patches.
 

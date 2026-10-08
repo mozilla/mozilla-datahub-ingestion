@@ -1,8 +1,12 @@
 """Usage statistics and owners for the Redash charts and dashboards in DataHub.
 
 The Redash source only writes chartInfo and dashboardInfo, so this source writes the
-aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, and patches to
-ownership and structuredProperties. Counts come from the STMO views in bigquery-etl.
+aspects it never touches: chartUsageStatistics, dashboardUsageStatistics, ownership, and
+patches to structuredProperties. Counts come from the STMO views in bigquery-etl.
+
+Ownership is read from DataHub, merged, and written back whole, so an owner that changes in
+Redash replaces the old one. Owners with a SERVICE source and OWNER_SOURCE_URL (or no url,
+from before it was set) are this source's and get replaced. Any others are kept.
 
 Charts and dashboards both get view counts over the last 90 days. DataHub doesn't display
 chart usage statistics, so chart views, users, and top users are also written to structured
@@ -14,7 +18,7 @@ import collections
 import datetime
 import time
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 from datahub.configuration.common import ConfigModel
 from datahub.emitter.mce_builder import (
@@ -26,14 +30,17 @@ from datahub.emitter.mcp import MetadataChangeProposalWrapper
 from datahub.ingestion.api.common import PipelineContext
 from datahub.ingestion.api.source import Source, SourceReport
 from datahub.ingestion.api.workunit import MetadataWorkUnit
+from datahub.ingestion.graph.client import DataHubGraph
 from datahub.ingestion.source.common.gcp_credentials_config import GCPCredential
 from datahub.metadata.schema_classes import (
+    AuditStampClass,
     CalendarIntervalClass,
     ChartUsageStatisticsClass,
     ChartUserUsageCountsClass,
     DashboardUsageStatisticsClass,
     DashboardUserUsageCountsClass,
     OwnerClass,
+    OwnershipClass,
     OwnershipSourceClass,
     OwnershipSourceTypeClass,
     OwnershipTypeClass,
@@ -59,6 +66,10 @@ LAST_90_DAYS = """
     submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
     AND DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)
 """
+# Set on the owners this source writes. Owners written before this was added have no url.
+OWNER_SOURCE_URL = "https://github.com/mozilla/mozilla-datahub-ingestion"
+# Entities per request when reading ownership from DataHub
+OWNERSHIP_BATCH_SIZE = 500
 
 
 class RedashUsageSourceConfig(ConfigModel):
@@ -86,7 +97,8 @@ class RedashUsageSourceReport(SourceReport):
     daily_usage_aspects: int = 0
     total_usage_aspects: int = 0
     structured_property_patches: int = 0
-    ownership_patches: int = 0
+    # Entities whose owners changed, including the ones whose Redash owner was removed
+    ownership_updates: int = 0
 
 
 class _ChartPatchBuilder(HasStructuredPropertiesPatch, ChartPatchBuilder):
@@ -111,6 +123,27 @@ def _day_millis(day: datetime.date) -> int:
     return _to_millis(
         datetime.datetime.combine(day, datetime.time.min, tzinfo=datetime.timezone.utc)
     )
+
+
+def _is_ours(owner: OwnerClass) -> bool:
+    return (
+        owner.source is not None
+        and owner.source.type == OwnershipSourceTypeClass.SERVICE
+        and owner.source.url in (None, OWNER_SOURCE_URL)
+    )
+
+
+def _owner_keys(owners: List[OwnerClass]) -> Set[tuple]:
+    return {
+        (
+            owner.owner,
+            owner.type,
+            owner.typeUrn,
+            owner.source.type if owner.source else None,
+            owner.source.url if owner.source else None,
+        )
+        for owner in owners
+    }
 
 
 def _later(
@@ -255,28 +288,65 @@ class RedashUsageSource(Source):
                 SELECT object_type, object_id, owner_email
                 FROM `{self.config.owners_table}`
             """
+            # urn -> owner email
+            redash_owners: Dict[str, str] = {}
             for row in client.query(owners_query).result():
                 urn = self._urn(row["object_type"], row["object_id"])
                 if urn not in known_urns:
                     missing_urns.add(urn)
                     continue
-                builder_class = (
-                    ChartPatchBuilder if urn in chart_urns else DashboardPatchBuilder
+                redash_owners[urn] = row["owner_email"]
+            # Every known entity is checked, so one whose owner left object_owners loses it
+            for entity_type, urns in (
+                ("chart", chart_urns),
+                ("dashboard", dashboard_urns),
+            ):
+                yield from self._ownership_workunits(
+                    graph, entity_type, sorted(urns), redash_owners, run_millis
                 )
-                patch = builder_class(urn).add_owner(
-                    OwnerClass(
-                        owner=make_user_urn(row["owner_email"]),
-                        type=OwnershipTypeClass.TECHNICAL_OWNER,
-                        source=OwnershipSourceClass(
-                            type=OwnershipSourceTypeClass.SERVICE
-                        ),
-                    )
-                )
-                for mcp in patch.build():
-                    yield self._workunit(mcp)
-                self.report.ownership_patches += 1
 
         self.report.entities_not_in_datahub = len(missing_urns)
+
+    def _ownership_workunits(
+        self,
+        graph: DataHubGraph,
+        entity_type: str,
+        urns: List[str],
+        redash_owners: Dict[str, str],
+        run_millis: int,
+    ) -> Iterable[MetadataWorkUnit]:
+        for start in range(0, len(urns), OWNERSHIP_BATCH_SIZE):
+            end = start + OWNERSHIP_BATCH_SIZE
+            batch = urns[start:end]
+            # Entities without an ownership aspect are left out of the response
+            entities = graph.get_entities(entity_type, batch, aspects=["ownership"])
+            for urn in batch:
+                current = entities.get(urn, {}).get("ownership")
+                current_owners = current[0].owners if current else []
+                owners = [owner for owner in current_owners if not _is_ours(owner)]
+                if urn in redash_owners:
+                    owners.append(
+                        OwnerClass(
+                            owner=make_user_urn(redash_owners[urn]),
+                            type=OwnershipTypeClass.TECHNICAL_OWNER,
+                            source=OwnershipSourceClass(
+                                type=OwnershipSourceTypeClass.SERVICE,
+                                url=OWNER_SOURCE_URL,
+                            ),
+                        )
+                    )
+                if _owner_keys(owners) == _owner_keys(current_owners):
+                    continue
+                aspect = OwnershipClass(
+                    owners=owners,
+                    lastModified=AuditStampClass(
+                        time=run_millis, actor="urn:li:corpuser:ingestion"
+                    ),
+                )
+                yield self._workunit(
+                    MetadataChangeProposalWrapper(entityUrn=urn, aspect=aspect)
+                )
+                self.report.ownership_updates += 1
 
     def _chart_property_workunits(
         self, client: bigquery.Client, views_90d: Dict[str, int]
