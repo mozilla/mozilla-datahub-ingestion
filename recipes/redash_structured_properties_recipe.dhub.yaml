@@ -1,0 +1,12 @@
+# Structured property definitions written to by the Redash usage source. Apply once before
+# the source first runs, and again after editing redash_structured_properties.json.
+source:
+  type: "file"
+  config:
+    filename: "./recipes/redash_structured_properties.json"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
