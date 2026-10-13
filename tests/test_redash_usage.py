@@ -57,21 +57,16 @@ DAILY_ROWS = [
 ]
 
 
-def total_row(object_type, object_id, views_90d, last_viewed_at=None):
-    return {
-        "object_type": object_type,
-        "object_id": object_id,
-        "views_90d": views_90d,
-        "last_viewed_at": last_viewed_at,
-    }
+def views_90d_row(object_type, object_id, views_90d):
+    return {"object_type": object_type, "object_id": object_id, "views_90d": views_90d}
 
 
-TOTAL_ROWS = [
-    total_row("visualization", 10, 12),
+VIEWS_90D_ROWS = [
+    views_90d_row("visualization", 10, 12),
     # No views in the last 90 days
-    total_row("visualization", 11, 0),
-    total_row("dashboard", 1, 20, datetime.datetime(2026, 9, 2, 8, tzinfo=UTC)),
-    total_row("visualization", 99, 7),
+    views_90d_row("visualization", 11, 0),
+    views_90d_row("dashboard", 1, 20),
+    views_90d_row("visualization", 99, 7),
 ]
 
 OWNER_ROWS = [
@@ -89,19 +84,30 @@ OWNER_ROWS = [
 ]
 
 
-CHART_USER_ROWS = [
-    {"object_id": 10, "user_email": email, "views": views}
-    for email, views in [
-        ("alice@mozilla.com", 5),
-        ("bob@mozilla.com", 5),
-        ("carol@mozilla.com", 1),
-        ("dave@mozilla.com", 3),
-        ("erin@mozilla.com", 2),
-        ("frank@mozilla.com", 1),
+def user_row(object_type, object_id, email, views):
+    return {
+        "object_type": object_type,
+        "object_id": object_id,
+        "user_email": email,
+        "views": views,
+    }
+
+
+USER_ROWS = [
+    user_row("visualization", 10, f"{name}@mozilla.com", views)
+    for name, views in [
+        ("alice", 5),
+        ("bob", 5),
+        ("carol", 1),
+        ("dave", 3),
+        ("erin", 2),
+        ("frank", 1),
     ]
 ] + [
+    user_row("dashboard", 1, "alice@mozilla.com", 4),
+    user_row("dashboard", 1, "bob@mozilla.com", 8),
     # Not in DataHub
-    {"object_id": 99, "user_email": "alice@mozilla.com", "views": 7},
+    user_row("visualization", 99, "alice@mozilla.com", 7),
 ]
 
 
@@ -110,9 +116,9 @@ def fake_query(sql, job_config=None):
     if "owner_email" in sql:
         job.result.return_value = OWNER_ROWS
     elif "user_email IS NOT NULL" in sql:
-        job.result.return_value = CHART_USER_ROWS
+        job.result.return_value = USER_ROWS
     elif "views_90d" in sql:
-        job.result.return_value = TOTAL_ROWS
+        job.result.return_value = VIEWS_90D_ROWS
     else:
         job.result.return_value = DAILY_ROWS
     return job
@@ -221,15 +227,13 @@ def test_dashboard_daily_usage(bigquery_client):
     ]
 
 
-def test_dashboard_total_usage(bigquery_client):
+def test_no_total_usage(bigquery_client):
     _, workunits = run()
 
-    (dashboard_total,) = usage_aspects(workunits, DASHBOARD, daily=False)
-    assert dashboard_total.viewsCount == 20
-    assert dashboard_total.lastViewedAt == 1788336000000  # 2026-09-02 08:00 UTC
-
-    # DataHub doesn't show chart totals, so charts only get daily buckets
+    # DataHub doesn't show chart totals, and Acryl's dashboard summary doesn't update from
+    # new ones, so both only get daily buckets
     assert not usage_aspects(workunits, CHART, daily=False)
+    assert not usage_aspects(workunits, DASHBOARD, daily=False)
 
 
 VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_90d"
@@ -259,9 +263,10 @@ def test_structured_properties(bigquery_client):
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
-    # Dashboards only get views, since DataHub shows their users itself
     assert structured_properties(property_patches[DASHBOARD]) == {
         VIEWS_PROPERTY: [{"double": 20.0}],
+        USERS_PROPERTY: [{"double": 2.0}],
+        TOP_USERS_PROPERTY: [{"string": BOB}, {"string": ALICE}],
     }
 
 
@@ -269,8 +274,10 @@ def test_emit_structured_properties_disabled(bigquery_client):
     _, workunits = run({"emit_structured_properties": False})
 
     assert not patches(workunits, "structuredProperties")
-    # Dashboard totals still come from the same query
-    assert usage_aspects(workunits, DASHBOARD, daily=False)
+    queries = [
+        call.args[0] for call in bigquery_client.return_value.query.call_args_list
+    ]
+    assert not [sql for sql in queries if "views_90d" in sql or "IS NOT NULL" in sql]
 
 
 def test_entities_missing_from_datahub_are_skipped(bigquery_client):

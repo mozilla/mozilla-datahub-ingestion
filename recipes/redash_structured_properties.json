@@ -47,9 +47,10 @@
         "valueType": "urn:li:dataType:datahub.number",
         "cardinality": "SINGLE",
         "entityTypes": [
-          "urn:li:entityType:datahub.chart"
+          "urn:li:entityType:datahub.chart",
+          "urn:li:entityType:datahub.dashboard"
         ],
-        "description": "Distinct users who viewed this chart on sql.telemetry.mozilla.org in the 90 days before the last daily update, counting dashboard renders and query page loads. Charts with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "description": "Distinct users who viewed this chart or dashboard on sql.telemetry.mozilla.org in the 90 days before the last daily update. Views with no identified user, such as embeds, aren't counted. Charts and dashboards with no views in the last 400 days have no value. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
         "immutable": false
       }
     }
@@ -87,9 +88,10 @@
         },
         "cardinality": "MULTIPLE",
         "entityTypes": [
-          "urn:li:entityType:datahub.chart"
+          "urn:li:entityType:datahub.chart",
+          "urn:li:entityType:datahub.dashboard"
         ],
-        "description": "Up to 5 users with the most views of this chart on sql.telemetry.mozilla.org in the 90 days before the last daily update, counting dashboard renders and query page loads, most views first. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
+        "description": "Up to 5 users with the most views of this chart or dashboard on sql.telemetry.mozilla.org in the 90 days before the last daily update, most views first. Set by the Redash usage source in mozilla/mozilla-datahub-ingestion.",
         "immutable": false
       }
     }

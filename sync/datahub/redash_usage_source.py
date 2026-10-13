@@ -8,10 +8,11 @@ Ownership is read from DataHub, merged, and written back whole, so an owner that
 Redash replaces the old one. Owners with a SERVICE source and OWNER_SOURCE_URL (or no url,
 from before it was set) are this source's and get replaced. Any others are kept.
 
-Charts and dashboards both get view counts over the last 90 days. DataHub doesn't display
-chart usage statistics, so chart views, users, and top users are also written to structured
-properties, defined in recipes/redash_structured_properties.json. Dashboards get the views
-property too, since the dashboard page labels its count "Total Views" without saying 90 days.
+Charts and dashboards both get views, users, and top users over the last 90 days as
+structured properties, defined in recipes/redash_structured_properties.json. Those are what the
+UI shows. DataHub never displays chart usage statistics, and Acryl's dashboard summary (Total
+Views, Users, Top Users) is cached and doesn't update from new dashboardUsageStatistics records,
+so no total is written for dashboards. The daily records are still written for the API.
 """
 
 import collections
@@ -56,11 +57,11 @@ from google.oauth2 import service_account
 
 PLATFORM = "redash"
 VIEWS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.views_90d"
-CHART_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_90d"
-CHART_TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_90d"
+USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_90d"
+TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_90d"
 # Same as the dashboard page's top users
 TOP_USER_COUNT = 5
-# The 90 complete days before the run, for dashboard totals and chart properties. The view
+# The 90 complete days before the run, for the structured properties. The view
 # covers more than this, so objects whose views stop still get 0 instead of keeping old values.
 LAST_90_DAYS = """
     submission_date BETWEEN DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
@@ -95,7 +96,6 @@ class RedashUsageSourceReport(SourceReport):
     # Distinct entities in the BigQuery results that DataHub doesn't have, e.g. drafts
     entities_not_in_datahub: int = 0
     daily_usage_aspects: int = 0
-    total_usage_aspects: int = 0
     structured_property_patches: int = 0
     # Entities whose owners changed, including the ones whose Redash owner was removed
     ownership_updates: int = 0
@@ -246,42 +246,8 @@ class RedashUsageSource(Source):
             )
             self.report.daily_usage_aspects += 1
 
-        totals_query = f"""
-            SELECT object_type, object_id,
-              SUM(IF({LAST_90_DAYS}, views, 0)) AS views_90d,
-              MAX(last_viewed_at) AS last_viewed_at
-            FROM `{self.config.views_table}`
-            GROUP BY object_type, object_id
-        """
-        chart_views_90d: Dict[str, int] = {}
-        for row in client.query(totals_query).result():
-            urn = self._urn(row["object_type"], row["object_id"])
-            if urn not in known_urns:
-                missing_urns.add(urn)
-                continue
-            if urn in chart_urns:
-                chart_views_90d[urn] = row["views_90d"]
-                continue
-            # The dashboard page shows the latest of these as "Total Views"
-            aspect = DashboardUsageStatisticsClass(
-                timestampMillis=run_millis,
-                viewsCount=row["views_90d"],
-                lastViewedAt=_to_millis(row["last_viewed_at"]),
-            )
-            yield self._workunit(
-                MetadataChangeProposalWrapper(entityUrn=urn, aspect=aspect)
-            )
-            self.report.total_usage_aspects += 1
-            if self.config.emit_structured_properties:
-                patch = _DashboardPatchBuilder(urn).set_structured_property(
-                    VIEWS_PROPERTY, float(row["views_90d"])
-                )
-                for mcp in patch.build():
-                    yield self._workunit(mcp)
-                self.report.structured_property_patches += 1
-
         if self.config.emit_structured_properties:
-            yield from self._chart_property_workunits(client, chart_views_90d)
+            yield from self._property_workunits(client, known_urns, missing_urns)
 
         if self.config.emit_ownership:
             owners_query = f"""
@@ -348,19 +314,34 @@ class RedashUsageSource(Source):
                 )
                 self.report.ownership_updates += 1
 
-    def _chart_property_workunits(
-        self, client: bigquery.Client, views_90d: Dict[str, int]
+    def _property_workunits(
+        self, client: bigquery.Client, known_urns: Set[str], missing_urns: Set[str]
     ) -> Iterable[MetadataWorkUnit]:
-        users_query = f"""
-            SELECT object_id, user_email, SUM(views) AS views
+        # Every object in the view gets values, including 0 for one with no views in the
+        # last 90 days, so an object that stops being used doesn't keep its old values
+        views_query = f"""
+            SELECT object_type, object_id, SUM(IF({LAST_90_DAYS}, views, 0)) AS views_90d
             FROM `{self.config.views_table}`
-            WHERE object_type = 'visualization' AND user_email IS NOT NULL AND {LAST_90_DAYS}
-            GROUP BY object_id, user_email
+            GROUP BY object_type, object_id
+        """
+        views_90d: Dict[str, int] = {}
+        for row in client.query(views_query).result():
+            urn = self._urn(row["object_type"], row["object_id"])
+            if urn not in known_urns:
+                missing_urns.add(urn)
+                continue
+            views_90d[urn] = row["views_90d"]
+
+        users_query = f"""
+            SELECT object_type, object_id, user_email, SUM(views) AS views
+            FROM `{self.config.views_table}`
+            WHERE user_email IS NOT NULL AND {LAST_90_DAYS}
+            GROUP BY object_type, object_id, user_email
         """
         # urn -> user email -> views
         users: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
         for row in client.query(users_query).result():
-            urn = self._urn("visualization", row["object_id"])
+            urn = self._urn(row["object_type"], row["object_id"])
             if urn in views_90d:
                 users[urn][row["user_email"]] = row["views"]
 
@@ -368,19 +349,24 @@ class RedashUsageSource(Source):
             top_users = sorted(
                 users[urn].items(), key=lambda item: (-item[1], item[0])
             )[:TOP_USER_COUNT]
+            builder_class = (
+                _ChartPatchBuilder
+                if urn.startswith("urn:li:chart:")
+                else _DashboardPatchBuilder
+            )
             patch = (
-                _ChartPatchBuilder(urn)
+                builder_class(urn)
                 .set_structured_property(VIEWS_PROPERTY, float(views))
-                .set_structured_property(CHART_USERS_PROPERTY, float(len(users[urn])))
+                .set_structured_property(USERS_PROPERTY, float(len(users[urn])))
             )
             if top_users:
                 patch.set_structured_property(
-                    CHART_TOP_USERS_PROPERTY,
+                    TOP_USERS_PROPERTY,
                     [make_user_urn(email) for email, _ in top_users],
                 )
             else:
                 # Clear users from an earlier window
-                patch.remove_structured_property(CHART_TOP_USERS_PROPERTY)
+                patch.remove_structured_property(TOP_USERS_PROPERTY)
             for mcp in patch.build():
                 yield self._workunit(mcp)
             self.report.structured_property_patches += 1

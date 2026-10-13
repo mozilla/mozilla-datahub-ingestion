@@ -47,7 +47,9 @@ UI-managed source in Acryl under Ingestion > Sources instead, because it reads B
 service account credentials that the BigQuery source already stores there as secrets. It writes
 usage, owners, and structured properties to the Redash charts and dashboards ingested by the
 Redash source, reading the `stmo.object_views_daily` and `stmo.object_owners` views from
-bigquery-etl.
+bigquery-etl. Views, users, and top users show in the UI as structured properties, because
+DataHub doesn't display chart usage and Acryl's dashboard summary (Total Views, Users, Top
+Users) is cached and doesn't update from new usage records.
 
 The source's settings in Acryl:
 
