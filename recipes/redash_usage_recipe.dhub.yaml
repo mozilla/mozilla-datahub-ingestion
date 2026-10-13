@@ -1,0 +1,13 @@
+# For local runs with application default credentials. The scheduled run is a UI-managed
+# source in Acryl with the same config plus `credential` copied from the BigQuery source.
+source:
+  type: sync.datahub.redash_usage_source.RedashUsageSource
+  config:
+    billing_project: moz-fx-data-datahub
+    lookback_days: 30
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
