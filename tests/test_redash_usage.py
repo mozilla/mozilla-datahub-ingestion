@@ -202,14 +202,14 @@ def test_chart_daily_usage(bigquery_client):
     assert day_1.timestampMillis == DAY_1_MILLIS
     assert day_1.eventGranularity.unit == "DAY"
     assert day_1.eventGranularity.multiple == 1
-    # The row with no email counts toward views but not users
+    # Includes the row with no email
     assert day_1.viewsCount == 10
-    assert day_1.uniqueUserCount == 2
-    assert [(c.user, c.viewsCount) for c in day_1.userCounts] == [(BOB, 5), (ALICE, 3)]
+    # No per-user counts, so DataHub's chart summary shows no users
+    assert day_1.uniqueUserCount is None
+    assert day_1.userCounts is None
 
     assert day_2.timestampMillis == DAY_2_MILLIS
     assert day_2.viewsCount == 1
-    assert [(c.user, c.viewsCount) for c in day_2.userCounts] == [(ALICE, 1)]
 
 
 def test_dashboard_daily_usage(bigquery_client):
@@ -221,9 +221,12 @@ def test_dashboard_daily_usage(bigquery_client):
     assert day_1.viewsCount == 3
     assert day_1.uniqueUserCount == 2
     assert day_1.lastViewedAt == DAY_1_MILLIS + 17 * 3600000
-    assert [(c.user, c.viewsCount, c.userEmail) for c in day_1.userCounts] == [
-        (ALICE, 2, "alice@mozilla.com"),
-        (BOB, 1, "bob@mozilla.com"),
+    # DataHub ranks top users by usageCount
+    assert [
+        (c.user, c.viewsCount, c.usageCount, c.userEmail) for c in day_1.userCounts
+    ] == [
+        (ALICE, 2, 2, "alice@mozilla.com"),
+        (BOB, 1, 1, "bob@mozilla.com"),
     ]
 
 
@@ -263,10 +266,11 @@ def test_structured_properties(bigquery_client):
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
+    # DataHub's summary shows dashboard users, so dashboards only keep views
     assert structured_properties(property_patches[DASHBOARD]) == {
         VIEWS_PROPERTY: [{"double": 20.0}],
-        USERS_PROPERTY: [{"double": 2.0}],
-        TOP_USERS_PROPERTY: [{"string": BOB}, {"string": ALICE}],
+        USERS_PROPERTY: None,
+        TOP_USERS_PROPERTY: None,
     }
 
 

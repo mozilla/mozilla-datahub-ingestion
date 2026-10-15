@@ -8,11 +8,18 @@ Ownership is read from DataHub, merged, and written back whole, so an owner that
 Redash replaces the old one. Owners with a SERVICE source and OWNER_SOURCE_URL (or no url,
 from before it was set) are this source's and get replaced. Any others are kept.
 
-Charts and dashboards both get views, users, and top users over the last 90 days as
-structured properties, defined in recipes/redash_structured_properties.json. Those are what the
-UI shows. DataHub never displays chart usage statistics, and Acryl's dashboard summary (Total
-Views, Users, Top Users) is cached and doesn't update from new dashboardUsageStatistics records,
-so no total is written for dashboards. The daily records are still written for the API.
+Views over the last 90 days are a structured property on charts and dashboards, defined in
+recipes/redash_structured_properties.json. Charts also get users and top users as properties.
+Chart daily records have no per-user counts, because DataHub's chart summary would rank top
+users in arbitrary order (chart user counts have no usageCount), so the chart summary shows no
+users and the properties are the only chart usage in the UI.
+
+Dashboards show users and top users in DataHub's own summary instead. A daily DataHub job
+builds it from the dashboardUsageStatistics daily records of the last 30 days, ranking top
+users by usageCount. The same job reads Total Views and Recent Views from snapshot records
+(no eventGranularity), treating viewsCount as a running total: Total Views is the highest
+value in the last 30 days and Recent Views the highest minus the lowest. No snapshots are
+written, so neither shows.
 """
 
 import collections
@@ -37,7 +44,6 @@ from datahub.metadata.schema_classes import (
     AuditStampClass,
     CalendarIntervalClass,
     ChartUsageStatisticsClass,
-    ChartUserUsageCountsClass,
     DashboardUsageStatisticsClass,
     DashboardUserUsageCountsClass,
     OwnerClass,
@@ -349,13 +355,22 @@ class RedashUsageSource(Source):
             top_users = sorted(
                 users[urn].items(), key=lambda item: (-item[1], item[0])
             )[:TOP_USER_COUNT]
-            builder_class = (
-                _ChartPatchBuilder
-                if urn.startswith("urn:li:chart:")
-                else _DashboardPatchBuilder
-            )
+            if urn.startswith("urn:li:dashboard:"):
+                # DataHub's summary shows dashboard users. Dashboards had these properties
+                # before, so they're removed rather than left with old values.
+                patch = (
+                    _DashboardPatchBuilder(urn)
+                    .set_structured_property(VIEWS_PROPERTY, float(views))
+                    .remove_structured_property(USERS_PROPERTY)
+                    .remove_structured_property(TOP_USERS_PROPERTY)
+                )
+                for mcp in patch.build():
+                    yield self._workunit(mcp)
+                self.report.structured_property_patches += 1
+                continue
+
             patch = (
-                builder_class(urn)
+                _ChartPatchBuilder(urn)
                 .set_structured_property(VIEWS_PROPERTY, float(views))
                 .set_structured_property(USERS_PROPERTY, float(len(users[urn])))
             )
@@ -383,17 +398,13 @@ class RedashUsageSource(Source):
         granularity = TimeWindowSizeClass(unit=CalendarIntervalClass.DAY, multiple=1)
 
         if urn.startswith("urn:li:chart:"):
+            # No per-user counts, so DataHub's chart summary has no Users or Top Users. Its
+            # Top Users would be in arbitrary order, since chart user counts have no
+            # usageCount to rank by. The chart properties show users instead.
             return ChartUsageStatisticsClass(
                 timestampMillis=timestamp_millis,
                 eventGranularity=granularity,
                 viewsCount=views,
-                uniqueUserCount=len(known_users),
-                userCounts=[
-                    ChartUserUsageCountsClass(
-                        user=make_user_urn(email), viewsCount=bucket.views
-                    )
-                    for email, bucket in known_users
-                ],
             )
 
         last_viewed_at: Optional[datetime.datetime] = None
@@ -405,8 +416,12 @@ class RedashUsageSource(Source):
             viewsCount=views,
             uniqueUserCount=len(known_users),
             userCounts=[
+                # DataHub ranks top users by usageCount
                 DashboardUserUsageCountsClass(
-                    user=make_user_urn(email), viewsCount=bucket.views, userEmail=email
+                    user=make_user_urn(email),
+                    viewsCount=bucket.views,
+                    usageCount=bucket.views,
+                    userEmail=email,
                 )
                 for email, bucket in known_users
             ],
