@@ -9,17 +9,17 @@ Redash replaces the old one. Owners with a SERVICE source and OWNER_SOURCE_URL (
 from before it was set) are this source's and get replaced. Any others are kept.
 
 Views over the last 90 days are a structured property on charts and dashboards, defined in
-recipes/redash_structured_properties.json. Charts also get users and top users as properties.
-Chart daily records have no per-user counts, because DataHub's chart summary would rank top
-users in arbitrary order (chart user counts have no usageCount), so the chart summary shows no
-users and the properties are the only chart usage in the UI.
+recipes/redash_structured_properties.json. Charts also get users and top users as properties,
+since DataHub's chart summary can't rank chart users: chart user counts have no usageCount, so
+its chart Top Users come out in arbitrary order and its chart Recent Views stays 0. The chart
+records still carry per-user counts, which give the chart summary its Users count and its
+popularity tier (ranked by users).
 
-Dashboards show users and top users in DataHub's own summary instead. A daily DataHub job
-builds it from the dashboardUsageStatistics daily records of the last 30 days, ranking top
-users by usageCount. The same job reads Total Views and Recent Views from snapshot records
-(no eventGranularity), treating viewsCount as a running total: Total Views is the highest
-value in the last 30 days and Recent Views the highest minus the lowest. No snapshots are
-written, so neither shows.
+Dashboards show users, top users, and recent views in DataHub's own summary instead. A daily
+DataHub job builds it from the dashboardUsageStatistics daily records of the last 30 days,
+ranking top users by usageCount and, without snapshots, adding up usageCount for Recent Views.
+With snapshot records (no eventGranularity) the job would treat viewsCount as a running total,
+showing the highest value as Total Views. No snapshots are written, so Total Views stays empty.
 """
 
 import collections
@@ -44,6 +44,7 @@ from datahub.metadata.schema_classes import (
     AuditStampClass,
     CalendarIntervalClass,
     ChartUsageStatisticsClass,
+    ChartUserUsageCountsClass,
     DashboardUsageStatisticsClass,
     DashboardUserUsageCountsClass,
     OwnerClass,
@@ -67,6 +68,8 @@ USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.users_90d"
 TOP_USERS_PROPERTY = "urn:li:structuredProperty:mozilla.redash.top_users_90d"
 # Same as the dashboard page's top users
 TOP_USER_COUNT = 5
+# Days of daily records DataHub's summary reads
+SUMMARY_WINDOW_DAYS = 30
 # The 90 complete days before the run, for the structured properties. The view
 # covers more than this, so objects whose views stop still get 0 instead of keeping old values.
 LAST_90_DAYS = """
@@ -170,6 +173,13 @@ class RedashUsageSource(Source):
     @classmethod
     def create(cls, config_dict: dict, ctx: PipelineContext) -> "RedashUsageSource":
         config = RedashUsageSourceConfig.parse_obj(config_dict)
+        # DataHub's summary reads the last 30 days of daily records, so each run has to
+        # rewrite at least that many for changes to the records to reach it
+        if config.lookback_days < SUMMARY_WINDOW_DAYS:
+            raise ValueError(
+                f"lookback_days must be at least {SUMMARY_WINDOW_DAYS}, "
+                f"got {config.lookback_days}"
+            )
         return cls(config, ctx)
 
     def _bigquery_client(self) -> bigquery.Client:
@@ -338,53 +348,46 @@ class RedashUsageSource(Source):
                 continue
             views_90d[urn] = row["views_90d"]
 
+        # Only charts get users properties. Dashboards show users in DataHub's summary.
         users_query = f"""
-            SELECT object_type, object_id, user_email, SUM(views) AS views
+            SELECT object_id, user_email, SUM(views) AS views
             FROM `{self.config.views_table}`
-            WHERE user_email IS NOT NULL AND {LAST_90_DAYS}
-            GROUP BY object_type, object_id, user_email
+            WHERE object_type = 'visualization' AND user_email IS NOT NULL
+              AND {LAST_90_DAYS}
+            GROUP BY object_id, user_email
         """
         # urn -> user email -> views
         users: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
         for row in client.query(users_query).result():
-            urn = self._urn(row["object_type"], row["object_id"])
+            urn = self._urn("visualization", row["object_id"])
             if urn in views_90d:
                 users[urn][row["user_email"]] = row["views"]
 
         for urn, views in sorted(views_90d.items()):
-            top_users = sorted(
-                users[urn].items(), key=lambda item: (-item[1], item[0])
-            )[:TOP_USER_COUNT]
-            if urn.startswith("urn:li:dashboard:"):
-                # DataHub's summary shows dashboard users. Dashboards had these properties
-                # before, so they're removed rather than left with old values.
-                patch = (
-                    _DashboardPatchBuilder(urn)
-                    .set_structured_property(VIEWS_PROPERTY, float(views))
-                    .remove_structured_property(USERS_PROPERTY)
-                    .remove_structured_property(TOP_USERS_PROPERTY)
-                )
-                for mcp in patch.build():
-                    yield self._workunit(mcp)
-                self.report.structured_property_patches += 1
-                continue
-
-            patch = (
-                _ChartPatchBuilder(urn)
-                .set_structured_property(VIEWS_PROPERTY, float(views))
-                .set_structured_property(USERS_PROPERTY, float(len(users[urn])))
-            )
-            if top_users:
-                patch.set_structured_property(
-                    TOP_USERS_PROPERTY,
-                    [make_user_urn(email) for email, _ in top_users],
-                )
+            if urn.startswith("urn:li:chart:"):
+                patch = _ChartPatchBuilder(urn)
+                self._set_user_properties(patch, users[urn])
             else:
-                # Clear users from an earlier window
-                patch.remove_structured_property(TOP_USERS_PROPERTY)
+                patch = _DashboardPatchBuilder(urn)
+            patch.set_structured_property(VIEWS_PROPERTY, float(views))
             for mcp in patch.build():
                 yield self._workunit(mcp)
             self.report.structured_property_patches += 1
+
+    def _set_user_properties(
+        self, patch: "_ChartPatchBuilder", users: Dict[str, int]
+    ) -> None:
+        patch.set_structured_property(USERS_PROPERTY, float(len(users)))
+        top_users = sorted(users.items(), key=lambda item: (-item[1], item[0]))[
+            :TOP_USER_COUNT
+        ]
+        if top_users:
+            patch.set_structured_property(
+                TOP_USERS_PROPERTY, [make_user_urn(email) for email, _ in top_users]
+            )
+        else:
+            # Clear users from an earlier window
+            patch.remove_structured_property(TOP_USERS_PROPERTY)
 
     def _usage_aspect(
         self, urn: str, timestamp_millis: int, users: Dict[Optional[str], _Bucket]
@@ -398,13 +401,19 @@ class RedashUsageSource(Source):
         granularity = TimeWindowSizeClass(unit=CalendarIntervalClass.DAY, multiple=1)
 
         if urn.startswith("urn:li:chart:"):
-            # No per-user counts, so DataHub's chart summary has no Users or Top Users. Its
-            # Top Users would be in arbitrary order, since chart user counts have no
-            # usageCount to rank by. The chart properties show users instead.
+            # Per-user counts give DataHub's chart summary its Users count and popularity
+            # tier. Chart user counts have no usageCount, so its chart Top Users aren't ranked.
             return ChartUsageStatisticsClass(
                 timestampMillis=timestamp_millis,
                 eventGranularity=granularity,
                 viewsCount=views,
+                uniqueUserCount=len(known_users),
+                userCounts=[
+                    ChartUserUsageCountsClass(
+                        user=make_user_urn(email), viewsCount=bucket.views
+                    )
+                    for email, bucket in known_users
+                ],
             )
 
         last_viewed_at: Optional[datetime.datetime] = None

@@ -50,10 +50,11 @@ Redash source, reading the `stmo.object_views_daily` and `stmo.object_owners` vi
 bigquery-etl. Views over 90 days show as a structured property on charts and dashboards. Charts
 also get users and top users as properties. Dashboards show users and top users in DataHub's own
 summary, which a daily DataHub job builds from the last 30 days of usage records, so it lags by
-about a day. Chart usage records have no per-user counts, so the chart summary shows no users:
-DataHub ranks top users by `usageCount`, which chart records don't have. The summary's Total
-Views and Recent Views are left empty on purpose, since they need running-total snapshot
-records.
+about a day. Charts get the same summary, but DataHub ranks top users and counts Recent Views
+by `usageCount`, which chart usage records can't have, so chart Top Users are in arbitrary
+order and chart Recent Views stays empty. The chart summary's Users count and popularity tier
+are still useful. The summary's Total Views is left empty on purpose, since it needs
+running-total snapshot records.
 
 The source's settings in Acryl:
 

@@ -104,8 +104,6 @@ USER_ROWS = [
         ("frank", 1),
     ]
 ] + [
-    user_row("dashboard", 1, "alice@mozilla.com", 4),
-    user_row("dashboard", 1, "bob@mozilla.com", 8),
     # Not in DataHub
     user_row("visualization", 99, "alice@mozilla.com", 7),
 ]
@@ -202,14 +200,14 @@ def test_chart_daily_usage(bigquery_client):
     assert day_1.timestampMillis == DAY_1_MILLIS
     assert day_1.eventGranularity.unit == "DAY"
     assert day_1.eventGranularity.multiple == 1
-    # Includes the row with no email
+    # The row with no email counts toward views but not users
     assert day_1.viewsCount == 10
-    # No per-user counts, so DataHub's chart summary shows no users
-    assert day_1.uniqueUserCount is None
-    assert day_1.userCounts is None
+    assert day_1.uniqueUserCount == 2
+    assert [(c.user, c.viewsCount) for c in day_1.userCounts] == [(BOB, 5), (ALICE, 3)]
 
     assert day_2.timestampMillis == DAY_2_MILLIS
     assert day_2.viewsCount == 1
+    assert [(c.user, c.viewsCount) for c in day_2.userCounts] == [(ALICE, 1)]
 
 
 def test_dashboard_daily_usage(bigquery_client):
@@ -266,11 +264,9 @@ def test_structured_properties(bigquery_client):
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
-    # DataHub's summary shows dashboard users, so dashboards only keep views
+    # DataHub's summary shows dashboard users, so dashboards only get views
     assert structured_properties(property_patches[DASHBOARD]) == {
         VIEWS_PROPERTY: [{"double": 20.0}],
-        USERS_PROPERTY: None,
-        TOP_USERS_PROPERTY: None,
     }
 
 
@@ -436,5 +432,14 @@ def test_query_config(bigquery_client):
     assert "`sandbox.test.views`" in daily_call.args[0]
     (parameter,) = daily_call.kwargs["job_config"].query_parameters
     assert (parameter.name, parameter.value) == ("lookback_days", 400)
-    assert "`sandbox.test.views`" in calls[2].args[0]
+    users_sql = calls[2].args[0]
+    assert "`sandbox.test.views`" in users_sql
+    # Only charts get users properties
+    assert "object_type = 'visualization'" in users_sql
     assert "`sandbox.test.owners`" in calls[3].args[0]
+
+
+def test_lookback_shorter_than_summary_window_is_rejected():
+    # DataHub's summary reads 30 days of daily records, and each run must rewrite them all
+    with pytest.raises(ValueError, match="lookback_days"):
+        make_source({"lookback_days": 29})
