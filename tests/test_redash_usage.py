@@ -221,9 +221,12 @@ def test_dashboard_daily_usage(bigquery_client):
     assert day_1.viewsCount == 3
     assert day_1.uniqueUserCount == 2
     assert day_1.lastViewedAt == DAY_1_MILLIS + 17 * 3600000
-    assert [(c.user, c.viewsCount, c.userEmail) for c in day_1.userCounts] == [
-        (ALICE, 2, "alice@mozilla.com"),
-        (BOB, 1, "bob@mozilla.com"),
+    # DataHub ranks top users by usageCount
+    assert [
+        (c.user, c.viewsCount, c.usageCount, c.userEmail) for c in day_1.userCounts
+    ] == [
+        (ALICE, 2, 2, "alice@mozilla.com"),
+        (BOB, 1, 1, "bob@mozilla.com"),
     ]
 
 
@@ -263,6 +266,7 @@ def test_structured_properties(bigquery_client):
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
+    # Dashboards get the same properties as charts
     assert structured_properties(property_patches[DASHBOARD]) == {
         VIEWS_PROPERTY: [{"double": 20.0}],
         USERS_PROPERTY: [{"double": 2.0}],
@@ -432,5 +436,14 @@ def test_query_config(bigquery_client):
     assert "`sandbox.test.views`" in daily_call.args[0]
     (parameter,) = daily_call.kwargs["job_config"].query_parameters
     assert (parameter.name, parameter.value) == ("lookback_days", 400)
-    assert "`sandbox.test.views`" in calls[2].args[0]
+    users_sql = calls[2].args[0]
+    assert "`sandbox.test.views`" in users_sql
+    # Both charts and dashboards get users properties
+    assert "GROUP BY object_type, object_id, user_email" in users_sql
     assert "`sandbox.test.owners`" in calls[3].args[0]
+
+
+def test_lookback_shorter_than_summary_window_is_rejected():
+    # DataHub's summary reads 30 days of daily records, and each run must rewrite them all
+    with pytest.raises(ValueError, match="lookback_days"):
+        make_source({"lookback_days": 29})
