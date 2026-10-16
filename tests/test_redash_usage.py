@@ -104,6 +104,8 @@ USER_ROWS = [
         ("frank", 1),
     ]
 ] + [
+    user_row("dashboard", 1, "alice@mozilla.com", 4),
+    user_row("dashboard", 1, "bob@mozilla.com", 8),
     # Not in DataHub
     user_row("visualization", 99, "alice@mozilla.com", 7),
 ]
@@ -264,9 +266,11 @@ def test_structured_properties(bigquery_client):
         USERS_PROPERTY: [{"double": 0.0}],
         TOP_USERS_PROPERTY: None,
     }
-    # DataHub's summary shows dashboard users, so dashboards only get views
+    # Dashboards get the same properties as charts
     assert structured_properties(property_patches[DASHBOARD]) == {
         VIEWS_PROPERTY: [{"double": 20.0}],
+        USERS_PROPERTY: [{"double": 2.0}],
+        TOP_USERS_PROPERTY: [{"string": BOB}, {"string": ALICE}],
     }
 
 
@@ -434,8 +438,8 @@ def test_query_config(bigquery_client):
     assert (parameter.name, parameter.value) == ("lookback_days", 400)
     users_sql = calls[2].args[0]
     assert "`sandbox.test.views`" in users_sql
-    # Only charts get users properties
-    assert "object_type = 'visualization'" in users_sql
+    # Both charts and dashboards get users properties
+    assert "GROUP BY object_type, object_id, user_email" in users_sql
     assert "`sandbox.test.owners`" in calls[3].args[0]
 
 
