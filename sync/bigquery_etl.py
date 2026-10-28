@@ -1,6 +1,5 @@
 import collections
 import re
-from pathlib import Path
 from typing import Dict
 import logging
 import requests
@@ -48,10 +47,14 @@ def get_bigquery_etl_table_references() -> Dict:
             qualified_name = f"{project}.{dataset}.{table}"
 
             if filename == METADATA_FILE:
-                tar.extract(member)
-                metadata = yaml.safe_load(Path(member.name).read_text())
-                if "scheduling" in metadata and "dag_name" in metadata["scheduling"]:
-                    wtmo_url = f"{WTMO_URL}/{metadata['scheduling']['dag_name']}/grid"
+                # Links can't be read from a streamed archive
+                if not member.isfile():
+                    continue
+                # Empty files load as None
+                metadata = yaml.safe_load(tar.extractfile(member)) or {}
+                scheduling = metadata.get("scheduling") or {}
+                if "dag_name" in scheduling:
+                    wtmo_url = f"{WTMO_URL}/{scheduling['dag_name']}/grid"
                     table_references[qualified_name]["wtmo_url"] = wtmo_url
 
             elif filename in QUERY_FILES:

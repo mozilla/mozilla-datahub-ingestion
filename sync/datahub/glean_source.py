@@ -1,7 +1,6 @@
-from typing import Iterable, Optional, List
+from typing import Iterable, Optional
 
 from datahub.ingestion.api.common import PipelineContext
-from datahub.ingestion.api.source import MetadataWorkUnitProcessor
 from datahub.ingestion.api.workunit import MetadataWorkUnit
 from datahub.emitter.mcp import MetadataChangeProposalWrapper, ChangeTypeClass
 import datahub.emitter.mce_builder as builder
@@ -17,7 +16,6 @@ from datahub.metadata.schema_classes import (
 from datahub.ingestion.source.state.stale_entity_removal_handler import (
     StatefulStaleMetadataRemovalConfig,
     StaleEntityRemovalSourceReport,
-    StaleEntityRemovalHandler,
 )
 from datahub.ingestion.source.state.stateful_ingestion_base import (
     StatefulIngestionConfigBase,
@@ -45,14 +43,6 @@ class GleanSource(StatefulIngestionSourceBase):
     def create(cls, config_dict: dict, ctx: PipelineContext):
         config = GleanSourceConfig.parse_obj(config_dict)
         return cls(config, ctx)
-
-    def get_workunit_processors(self) -> List[Optional[MetadataWorkUnitProcessor]]:
-        return [
-            *super().get_workunit_processors(),
-            StaleEntityRemovalHandler.create(
-                self, self.config, self.ctx
-            ).workunit_processor,
-        ]
 
     def get_workunits_internal(self) -> Iterable[MetadataWorkUnit]:
         for glean_ping in get_glean_pings():
