@@ -124,7 +124,7 @@ def _build_product_dict(product: str, metrics: List[MetricHubDefinition]) -> Dic
     }
 
 
-def _generate_table_to_term_data(
+def generate_table_to_term_data(
     metrics: List[MetricHubDefinition],
 ) -> List[Dict[str, Any]]:
     source_table_to_metric = defaultdict(list)
@@ -146,16 +146,17 @@ def _generate_table_to_term_data(
     return yaml_data
 
 
-def main() -> None:
-    metric_hub_definitions = get_metric_definitions()
+def build_glossary(metric_hub_definitions: List[MetricHubDefinition]) -> Dict:
     product_nodes = [
         _build_product_dict(product, product_metrics)
+        # Both looker and metric-hub can define metrics for the same product
         for product, product_metrics in itertools.groupby(
-            metric_hub_definitions, operator.attrgetter("product")
+            sorted(metric_hub_definitions, key=operator.attrgetter("product")),
+            operator.attrgetter("product"),
         )
     ]
 
-    glossary = {
+    return {
         "version": 1,
         "source": "Metric-Hub",
         "url": METRIC_HUB_REPO_URL,
@@ -169,7 +170,11 @@ def main() -> None:
         ],
     }
 
-    datasets_yaml_data = _generate_table_to_term_data(metric_hub_definitions)
+
+def main() -> None:
+    metric_hub_definitions = get_metric_definitions()
+    glossary = build_glossary(metric_hub_definitions)
+    datasets_yaml_data = generate_table_to_term_data(metric_hub_definitions)
 
     with open(GLOSSARY_FILENAME, "w+") as f:
         yaml.dump(glossary, f)

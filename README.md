@@ -21,58 +21,53 @@ All other recipes can be found in the `recipes` directory and can be run similar
 
 ## Scheduled ingestion
 
-The custom sources in this repo run on a schedule in one of two places.
+The custom sources in this repo run as UI-managed sources in Acryl under Ingestion > Sources:
 
-### CircleCI
+| Source | Recipe | Schedule | What it writes |
+|---|---|---|---|
+| Glean | `glean_recipe.dhub.yaml` | daily 00:00 UTC | Glean pings as datasets, with lineage to their BigQuery tables |
+| Legacy telemetry | `legacy_recipe.dhub.yaml` | daily 00:00 UTC | Legacy telemetry pings as datasets, with lineage to their BigQuery tables |
+| Metric Hub glossary | `metrichub_glossary_source_recipe.dhub.yaml` | daily 00:00 UTC | Metric Hub metrics as glossary terms, and links from terms to the BigQuery tables they read from |
+| bigquery-etl | `bigquery_etl_recipe.dhub.yaml` | daily 00:00 UTC | Links from BigQuery tables to their bigquery-etl source and Airflow DAG |
+| Redash usage | `redash_usage_recipe.dhub.yaml` | daily 12:00 UTC | Usage, owners, and structured properties on Redash charts and dashboards |
 
-The `nightly` workflow in `.circleci/config.yml` runs daily at 00:00 UTC on `main`. It runs the
-unit tests, then one `datahub-ingest` job per recipe:
+Each source's settings in Acryl:
 
-| Job | Recipe | What it writes |
-|---|---|---|
-| `glean-source` | `glean_recipe.dhub.yaml` | Glean pings as datasets, with lineage to their BigQuery tables |
-| `legacytelemetry-source` | `legacy_recipe.dhub.yaml` | Legacy telemetry pings as datasets, with lineage to their BigQuery tables |
-| `metrichub-glossary-source` | `metrichub_recipe.dhub.yaml` | Metric Hub metrics as glossary terms, then links terms to tables with `datahub dataset upsert` |
-| `bigquery-etl-source` | `bigquery_etl_recipe.dhub.yaml` | Links from BigQuery tables to their bigquery-etl source and Airflow DAG |
-
-Each job installs `requirements.txt` and runs the recipe from the checkout, so changes take
-effect on the first nightly run after they merge. `DATAHUB_GMS_URL` is set in the config and
-`DATAHUB_GMS_TOKEN` comes from the CircleCI project's environment variables. To schedule
-another source here, add its recipe and a `datahub-ingest` job to the `nightly` workflow.
-
-### Acryl UI ingestion
-
-The Redash usage source (`sync.datahub.redash_usage_source.RedashUsageSource`) runs as a
-UI-managed source in Acryl under Ingestion > Sources instead, because it reads BigQuery with the
-service account credentials that the BigQuery source already stores there as secrets. It writes
-usage, owners, and structured properties to the Redash charts and dashboards ingested by the
-Redash source, reading the `stmo.object_views_daily` and `stmo.object_owners` views from
-bigquery-etl. Views, users, and top users over 90 days show as structured properties on charts
-and dashboards. DataHub also shows its own summary (Users, Top Users, Recent Views, and a
-popularity tier over 30 days), which a daily DataHub job builds from the usage records, so it
-lags by about a day. DataHub ranks top users and counts Recent Views by `usageCount`, which
-chart usage records can't have, so for charts the summary's Top Users are in arbitrary order
-and Recent Views stays empty, while its Users count and popularity tier are still useful. The
-summary's Total Views is left empty on purpose, since it needs running-total snapshot records.
-
-The source's settings in Acryl:
-
-- Recipe: the same as `recipes/redash_usage_recipe.dhub.yaml`, without the sink (the executor adds
-  one) and with a `credential` block whose values and `${SECRET}` references are copied from the
-  BigQuery source's recipe.
-- Extra pip packages: `git+https://github.com/mozilla/mozilla-datahub-ingestion.git@<sha>`. The
-  executor installs this repo from git on every run, so pinning a commit means changes on `main`
+- Recipe: the recipe file without its `sink` (the executor adds one).
+- Extra pip packages: `git+https://github.com/mozilla/mozilla-datahub-ingestion.git@main`. The
+  executor installs this repo from git on every run, so changes take effect on the first run
+  after they merge. The Redash usage source pins a commit SHA instead of `main`, so its changes
   only take effect when the SHA in the source is updated.
-- Schedule: daily at 12:00 UTC, after the `bqetl_stmo` DAG loads `stmo_external` at 08:00 UTC (best-effort).
-  The order relative to the Redash source doesn't matter, since the two write different aspects.
+
+To schedule another source, add its recipe to `recipes` and create a source the same way.
 
 The executor runs a newer DataHub CLI than `requirements.txt` pins (1.7 on Python 3.11 as of
-October 2026), so test changes to this source against that version as well. Apply
-`redash_structured_properties_recipe.dhub.yaml` before deploying a change that adds or renames a
-structured property, or DataHub rejects the source's patches.
+October 2026), so test changes against that version as well.
 
 Redash, Looker, BigQuery, and other sources are also UI-managed in Acryl, but they are
 built-in DataHub sources and aren't part of this repo.
+
+### Redash usage
+
+The Redash usage source (`sync.datahub.redash_usage_source.RedashUsageSource`) writes usage,
+owners, and structured properties to the Redash charts and dashboards ingested by the Redash
+source, reading the `stmo.object_views_daily` and `stmo.object_owners` views from bigquery-etl.
+Views, users, and top users over 90 days show as structured properties on charts and dashboards.
+DataHub also shows its own summary (Users, Top Users, Recent Views, and a popularity tier over 30
+days), which a daily DataHub job builds from the usage records, so it lags by about a day.
+DataHub ranks top users and counts Recent Views by `usageCount`, which chart usage records can't
+have, so for charts the summary's Top Users are in arbitrary order and Recent Views stays empty,
+while its Users count and popularity tier are still useful. The summary's Total Views is left
+empty on purpose, since it needs running-total snapshot records.
+
+It's the only source that needs secrets: its recipe in Acryl adds a `credential` block whose
+values and `${SECRET}` references are copied from the BigQuery source's recipe. It runs at 12:00
+UTC, after the `bqetl_stmo` DAG loads `stmo_external` at 08:00 UTC (best-effort). The order
+relative to the Redash source doesn't matter, since the two write different aspects.
+
+Before a change that adds or renames a structured property starts running, define it in DataHub
+by running `redash_structured_properties_recipe.dhub.yaml`. Otherwise DataHub rejects the
+source's writes to it.
 
 ## Development
 

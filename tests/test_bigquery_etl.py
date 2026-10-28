@@ -1,3 +1,4 @@
+import io
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -37,3 +38,34 @@ def test_get_legacy_pings(mock_get):
         data["moz-fx-data-shared-prod.test_dataset.test_table"]["wtmo_url"]
         == "https://workflow.telemetry.mozilla.org/dags/test_dag/grid"
     )
+
+
+def _add_file(tar, name, content):
+    info = tarfile.TarInfo(name)
+    info.size = len(content)
+    tar.addfile(info, io.BytesIO(content))
+
+
+@patch("requests.get")
+def test_skips_unreadable_metadata(mock_get):
+    prefix = "bigquery-etl-generated-sql/sql/moz-fx-data-shared-prod/test_dataset"
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as tar:
+        _add_file(tar, f"{prefix}/empty/metadata.yaml", b"")
+        _add_file(tar, f"{prefix}/no_scheduling/metadata.yaml", b"scheduling:\n")
+        link = tarfile.TarInfo(f"{prefix}/linked/metadata.yaml")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../empty/metadata.yaml"
+        tar.addfile(link)
+        _add_file(
+            tar, f"{prefix}/scheduled/metadata.yaml", b"scheduling:\n  dag_name: dag\n"
+        )
+    mock_get.side_effect = [MockApiResponse(archive.getvalue())]
+
+    data = get_bigquery_etl_table_references()
+
+    assert data == {
+        "moz-fx-data-shared-prod.test_dataset.scheduled": {
+            "wtmo_url": "https://workflow.telemetry.mozilla.org/dags/dag/grid"
+        }
+    }
