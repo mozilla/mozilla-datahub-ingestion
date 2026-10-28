@@ -1,6 +1,7 @@
 import json
 from unittest.mock import patch
 
+import yaml
 from datahub.ingestion.api.common import PipelineContext
 from datahub.ingestion.source.metadata.business_glossary import (
     BusinessGlossaryFileSource,
@@ -54,14 +55,11 @@ def as_json(records):
     return [json.dumps(record.to_obj(), sort_keys=True) for record in records]
 
 
-def test_glossary_matches_file_based_recipe(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    with patch.object(
-        metrichub_glossary, "get_metric_definitions", return_value=METRICS
-    ):
-        metrichub_glossary.main()
+def test_glossary_matches_business_glossary_source(tmp_path):
+    glossary_file = tmp_path / "glossary.yaml"
+    glossary_file.write_text(yaml.dump(metrichub_glossary.build_glossary(METRICS)))
     file_source = BusinessGlossaryFileSource.create(
-        {"file": metrichub_glossary.GLOSSARY_FILENAME, "enable_auto_id": False},
+        {"file": str(glossary_file), "enable_auto_id": False},
         PipelineContext(run_id="test"),
     )
     expected = as_json(wu.metadata for wu in file_source.get_workunits_internal())

@@ -42,8 +42,7 @@ class MetricHubGlossarySource(Source):
         super().__init__(ctx)
         self.config = config
         self.report = SourceReport()
-        # Same settings as recipes/metrichub_recipe.dhub.yaml. The glossary is built in
-        # memory, so the file is only a label.
+        # Path-based term URNs. The glossary is built in memory, so the file is only a label.
         self.glossary_source_config = BusinessGlossarySourceConfig(
             file=METRIC_HUB_REPO_URL, enable_auto_id=False
         )
