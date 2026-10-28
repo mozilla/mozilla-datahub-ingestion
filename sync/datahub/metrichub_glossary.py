@@ -1,4 +1,4 @@
-"""Builds the metric-hub glossary YAML file for syncing to DataHub."""
+"""Builds the Metric Hub glossary and the links from its terms to BigQuery tables."""
 
 from collections import defaultdict
 import itertools
@@ -8,16 +8,11 @@ from typing import Any, Dict, List
 from metric_config_parser.metric import MetricLevel
 from datahub.emitter.mce_builder import make_term_urn, make_dataset_urn
 
-import yaml
-
 from sync.metrichub import (
     METRIC_HUB_REPO_URL,
-    get_metric_definitions,
     MetricHubDefinition,
 )
 
-GLOSSARY_FILENAME = "metric_hub_glossary.yaml"
-TABLE_TO_METRIC_FILENAME = "datasets.yaml"
 LOOKER_EXPLORE_URL = "https://mozilla.cloud.looker.com/explore"
 
 
@@ -169,19 +164,3 @@ def build_glossary(metric_hub_definitions: List[MetricHubDefinition]) -> Dict:
             }
         ],
     }
-
-
-def main() -> None:
-    metric_hub_definitions = get_metric_definitions()
-    glossary = build_glossary(metric_hub_definitions)
-    datasets_yaml_data = generate_table_to_term_data(metric_hub_definitions)
-
-    with open(GLOSSARY_FILENAME, "w+") as f:
-        yaml.dump(glossary, f)
-
-    with open(TABLE_TO_METRIC_FILENAME, "w+") as f:
-        yaml.dump(datasets_yaml_data, f, sort_keys=False)
-
-
-if __name__ == "__main__":
-    main()
