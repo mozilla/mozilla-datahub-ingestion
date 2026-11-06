@@ -30,6 +30,7 @@ The custom sources in this repo run as UI-managed sources in Acryl under Ingesti
 | Metric Hub glossary | `metrichub_glossary_source_recipe.dhub.yaml` | daily 00:00 UTC | Metric Hub metrics as glossary terms, and links from terms to the BigQuery tables they read from |
 | bigquery-etl | `bigquery_etl_recipe.dhub.yaml` | daily 00:00 UTC | Links from BigQuery tables to their bigquery-etl source and Airflow DAG |
 | Redash usage | `redash_usage_recipe.dhub.yaml` | daily 12:00 UTC | Usage, owners, and structured properties on Redash charts and dashboards |
+| Deepnote | `deepnote_recipe.dhub.yaml` | daily 00:00 UTC | Prod Streamlit apps on Deepnote as dashboards, with lineage to their BigQuery tables |
 
 Each source's settings in Acryl:
 
@@ -60,7 +61,7 @@ have, so for charts the summary's Top Users are in arbitrary order and Recent Vi
 while its Users count and popularity tier are still useful. The summary's Total Views is left
 empty on purpose, since it needs running-total snapshot records.
 
-It's the only source that needs secrets: its recipe in Acryl adds a `credential` block whose
+Its recipe in Acryl adds a `credential` block whose
 values and `${SECRET}` references are copied from the BigQuery source's recipe. It runs at 12:00
 UTC, after the `bqetl_stmo` DAG loads `stmo_external` at 08:00 UTC (best-effort). The order
 relative to the Redash source doesn't matter, since the two write different aspects.
@@ -68,6 +69,43 @@ relative to the Redash source doesn't matter, since the two write different aspe
 Before a change that adds or renames a structured property starts running, define it in DataHub
 by running `redash_structured_properties_recipe.dhub.yaml`. Otherwise DataHub rejects the
 source's writes to it.
+
+### Deepnote
+
+The Deepnote source (`sync.datahub.deepnote_source.DeepnoteSource`) writes prod Streamlit apps
+served from Deepnote as dashboards on the `Deepnote` platform.
+
+It only ingests Streamlit apps that:
+
+- are in the default Mozilla workspace. The workgroup workspaces (Ads, Marketing, Revenue) hold
+  restricted data, so the source refuses an API key for any other workspace.
+- have a `metadata.yaml` next to their entrypoint. The `dashboard` skill in the mozdata Claude
+  plugin writes one. For a hand-made app, write one by hand.
+- have `tier: prod` in it. A dashboard moved back to draft is soft-deleted on the next run.
+
+Notebooks, drafts, and apps without that file are not ingested.
+
+From `metadata.yaml` it reads these fields, laid out as in the skill's template. Only `tier` is
+required:
+
+```yaml
+tier: prod
+title: "Desktop DAU by country"     # else the project name
+owner: "someone@mozilla.com"        # added as an owner
+grounding:                          # linked to the Metric Hub glossary term
+  source: metric_hub
+  platform: firefox_desktop
+  metric_name: daily_active_users_v2
+query:
+  sql: |                            # parsed for links to BigQuery tables
+    SELECT ... FROM mozdata.telemetry.active_users_aggregates
+```
+
+`sensitivity`, `review_status`, `generated_by`, `drift_check`, and `promotion.promoted_at` are
+shown as properties when present. Apps marked `sensitivity: restricted` are skipped. Dashboards are
+keyed by project and entrypoint, so stopping and re-serving an app keeps the same dashboard.
+Its recipe reads the `DEEPNOTE_API_KEY` secret in Acryl, an API key for the
+`datahub-deepnote@mozilla.com` service account in the Mozilla workspace.
 
 ## Development
 

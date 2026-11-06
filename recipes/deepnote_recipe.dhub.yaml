@@ -1,0 +1,17 @@
+---
+# DEEPNOTE_API_KEY: Acryl secret with an API key for the Mozilla Deepnote workspace.
+source:
+  type: sync.datahub.deepnote_source.DeepnoteSource
+  config:
+    env: "PROD"
+    api_key: "${DEEPNOTE_API_KEY}"
+    stateful_ingestion:
+      enabled: true
+
+pipeline_name: "deepnote_ingestion_pipeline"
+
+sink:
+  type: "datahub-rest"
+  config:
+    server: ${DATAHUB_GMS_URL}
+    token: ${DATAHUB_GMS_TOKEN}
