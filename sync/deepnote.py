@@ -1,39 +1,33 @@
 import os
-import re
+import posixpath
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Sequence, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+import yaml
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 DEEPNOTE_API = "https://api.deepnote.com/v2"
-BIGQUERY_INTEGRATION = "big-query"
-DEFAULT_ENTRYPOINT = "streamlit_app.py"
+
+# Mozilla workspace. Workgroup workspaces hold restricted data and are not ingested.
+DEFAULT_WORKSPACE_ID = "5730346c-9297-42b0-80b0-35611206a1d7"
+
+METADATA_FILE = "metadata.yaml"
+PROD_TIER = "prod"
 
 REQUEST_TIMEOUT = 30
 PROJECT_PAGE_SIZE = 100
 FETCH_WORKERS = 8
 
-# Same shape bigquery-etl uses. Duplicated from the Quick source on purpose;
-# fold the two together once both are on main.
-TABLE_RE = re.compile(
-    r"(?<![A-Za-z0-9_.\-])"
-    r"((?:mozdata|moz-fx-[a-z0-9\-]+)\.[A-Za-z0-9_]+\.[A-Za-z0-9_]+)"
-    r"(?![A-Za-z0-9_.])"
-    r"(?=(.{0,4}))",
-    re.DOTALL,
-)
-# A name cut short where interpolation, concatenation or a LIKE wildcard starts
-# is a prefix, not a table. Those URNs do not resolve.
-RUNTIME_REF_RE = re.compile(r"""^(?:\$\{|\{\{|%|["'`]\s*\+|\s*\+)""")
-
 
 class DeepnoteFetchError(Exception):
-    """A Deepnote API call failed.
+    pass
 
-    Distinct from a 404, which means the resource is absent. A run that hits one
-    of these is incomplete and must not soft-delete anything.
-    """
+
+class DeepnoteWorkspaceError(Exception):
+    pass
 
 
 @dataclass
@@ -45,21 +39,60 @@ class DeepnoteApp:
     url: str
     created_at: Optional[str]
     folder_path: Optional[str] = None
-    status: Optional[str] = None
-    tables: Sequence[str] = field(default_factory=list)
-    runtime_table_refs: Sequence[str] = field(default_factory=list)
-    siblings: int = 1
+    metadata: Optional[Dict[str, Any]] = None
+    metadata_error: Optional[str] = None
+
+    @property
+    def key(self) -> str:
+        # The app id changes when a file is re-served.
+        return f"{self.project_id}/{self.entrypoint}"
+
+    def metadata_value(self, *path: str, placeholders: bool = False) -> Optional[str]:
+        value: Any = self.metadata or {}
+        for name in path:
+            value = value.get(name) if isinstance(value, dict) else None
+        if value is None or isinstance(value, (dict, list)):
+            return None
+        text = str(value).strip()
+        # "{{" is an unfilled placeholder from the skill's template.
+        if not text or text.lower() in ("null", "none"):
+            return None
+        if "{{" in text and not placeholders:
+            return None
+        return text
 
     @property
     def title(self) -> str:
-        """Project name, qualified by entrypoint only when it disambiguates."""
-        if self.siblings > 1 or self.entrypoint != DEFAULT_ENTRYPOINT:
-            return f"{self.project_name} ({self.entrypoint})"
-        return self.project_name
+        return self.metadata_value("title") or self.project_name
 
     @property
-    def bigquery_fully_qualified_names(self) -> Sequence[str]:
-        return list(self.tables)
+    def tier(self) -> Optional[str]:
+        tier = self.metadata_value("tier")
+        return tier.lower() if tier else None
+
+    @property
+    def sensitivity(self) -> Optional[str]:
+        sensitivity = self.metadata_value("sensitivity")
+        return sensitivity.lower() if sensitivity else None
+
+    @property
+    def sql(self) -> Optional[str]:
+        return self.metadata_value("query", "sql", placeholders=True)
+
+    @property
+    def owner_email(self) -> Optional[str]:
+        owner = self.metadata_value("owner")
+        return owner if owner and "@" in owner else None
+
+    @property
+    def metric_term(self) -> Optional[str]:
+        if self.metadata_value("grounding", "source") != "metric_hub":
+            return None
+        platform = self.metadata_value("grounding", "platform")
+        metric = self.metadata_value("grounding", "metric_name")
+        if platform and metric:
+            return f"Metric Hub.{platform}.{metric}"
+        return None
 
 
 def get_api_key(api_key: Optional[str] = None) -> str:
@@ -74,15 +107,14 @@ def get_api_key(api_key: Optional[str] = None) -> str:
 def _session(api_key: str) -> requests.Session:
     session = requests.Session()
     session.headers.update({"Authorization": f"Bearer {api_key}"})
+    retry = Retry(total=3, backoff_factor=1, status_forcelist=(429, 500, 502, 503, 504))
+    session.mount("https://", HTTPAdapter(max_retries=retry))
     return session
 
 
-def _get(session: requests.Session, endpoint: str, **params) -> Optional[dict]:
-    """Parsed body, or None on 404. Anything else raises.
-
-    The endpoint is named `endpoint`, not `path`, because /files/download takes a
-    query parameter called `path`.
-    """
+def _request(
+    session: requests.Session, endpoint: str, params: dict
+) -> Optional[requests.Response]:
     url = f"{DEEPNOTE_API}{endpoint}"
     try:
         response = session.get(url, params=params or None, timeout=REQUEST_TIMEOUT)
@@ -92,6 +124,13 @@ def _get(session: requests.Session, endpoint: str, **params) -> Optional[dict]:
         return None
     if not response.ok:
         raise DeepnoteFetchError(f"{endpoint}: HTTP {response.status_code}")
+    return response
+
+
+def _get(session: requests.Session, endpoint: str, **params) -> Optional[dict]:
+    response = _request(session, endpoint, params)
+    if response is None:
+        return None
     try:
         return response.json()
     except ValueError as error:
@@ -99,16 +138,20 @@ def _get(session: requests.Session, endpoint: str, **params) -> Optional[dict]:
 
 
 def _get_text(session: requests.Session, endpoint: str, **params) -> Optional[str]:
-    url = f"{DEEPNOTE_API}{endpoint}"
-    try:
-        response = session.get(url, params=params or None, timeout=REQUEST_TIMEOUT)
-    except requests.RequestException as error:
-        raise DeepnoteFetchError(f"{endpoint}: {error}")
-    if response.status_code == 404:
-        return None
-    if not response.ok:
-        raise DeepnoteFetchError(f"{endpoint}: HTTP {response.status_code}")
-    return response.text
+    response = _request(session, endpoint, params)
+    return None if response is None else response.text
+
+
+def check_workspace(session: requests.Session) -> None:
+    body = _get(session, "/me") or {}
+    workspace = body.get("workspace")
+    workspace_id = workspace.get("id") if isinstance(workspace, dict) else None
+    if workspace_id != DEFAULT_WORKSPACE_ID:
+        raise DeepnoteWorkspaceError(
+            f"the API key is for workspace {workspace_id!r}, not the default "
+            f"Mozilla workspace {DEFAULT_WORKSPACE_ID}. Restricted workspaces are "
+            "not ingested."
+        )
 
 
 def list_projects(session: requests.Session) -> List[dict]:
@@ -127,64 +170,42 @@ def list_projects(session: requests.Session) -> List[dict]:
 
 
 def list_streamlit_apps(session: requests.Session, project_id: str) -> List[dict]:
-    """The API has no workspace-wide list, so this is called once per project."""
     body = _get(session, "/streamlit-apps", projectId=project_id) or {}
     return body.get("streamlitApps") or []
 
 
-def get_app_status(session: requests.Session, app_id: str) -> Optional[str]:
-    body = _get(session, f"/streamlit-apps/{app_id}/status") or {}
-    return body.get("status")
+def folder_path(project: dict) -> Optional[str]:
+    folder = project.get("folder")
+    if not isinstance(folder, dict):
+        return None
+    path = folder.get("path")
+    if isinstance(path, list):
+        names = [p.get("name") for p in path if isinstance(p, dict) and p.get("name")]
+        if names:
+            return "/".join(names)
+    return folder.get("name")
 
 
-def bigquery_sql_by_project(session: requests.Session) -> Dict[str, List[str]]:
-    """SQL block contents for every BigQuery integration, keyed by project.
-
-    One call per integration covers the whole workspace, which is much cheaper
-    than walking every project's notebooks.
-    """
-    body = _get(session, "/integrations") or {}
-    integrations = [
-        i
-        for i in (body.get("integrations") or [])
-        if i.get("type") == BIGQUERY_INTEGRATION
-    ]
-    sql: Dict[str, List[str]] = {}
-    for integration in integrations:
-        usages = (
-            _get(session, f"/integrations/{integration['id']}/usages/block") or {}
-        ).get("usages") or []
-        for usage in usages:
-            project_id = usage.get("projectId")
-            content = usage.get("blockContent")
-            if project_id and content:
-                sql.setdefault(project_id, []).append(content)
-    return sql
+def parse_metadata(text: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    try:
+        parsed = yaml.safe_load(text)
+    except yaml.YAMLError as error:
+        return None, f"not valid YAML: {error}"
+    if not isinstance(parsed, dict):
+        return None, "not a YAML mapping"
+    return parsed, None
 
 
-def find_tables(text: str) -> Tuple[List[str], List[str]]:
-    """Return (complete, runtime) table names. Seen complete once wins."""
-    complete, runtime = set(), set()
-    for match in TABLE_RE.finditer(text):
-        name, tail = match.group(1), match.group(2)
-        if name.endswith("_") or RUNTIME_REF_RE.match(tail):
-            runtime.add(name)
-        else:
-            complete.add(name)
-    return sorted(complete), sorted(runtime - complete)
+def metadata_path(entrypoint: str) -> str:
+    return posixpath.join(posixpath.dirname(entrypoint), METADATA_FILE)
 
 
 def get_deepnote_apps(
     api_key: Optional[str] = None,
-    with_status: bool = True,
 ) -> Tuple[List[DeepnoteApp], List[DeepnoteFetchError]]:
-    """Every Streamlit app in the workspace, and the calls that failed.
-
-    Callers must treat a non-empty error list as an incomplete run.
-    """
     session = _session(get_api_key(api_key))
+    check_workspace(session)
     projects = list_projects(session)
-    sql_by_project = bigquery_sql_by_project(session)
 
     def collect(project: dict):
         try:
@@ -200,36 +221,40 @@ def get_deepnote_apps(
                 errors.append(error)
                 continue
             for raw in raw_apps:
+                if not raw.get("entrypoint"):
+                    continue
                 apps.append(
                     DeepnoteApp(
                         id=raw["id"],
                         project_id=project["id"],
                         project_name=project.get("name") or project["id"],
-                        entrypoint=raw.get("entrypoint") or DEFAULT_ENTRYPOINT,
+                        entrypoint=raw["entrypoint"],
                         url=raw.get("url") or "",
                         created_at=raw.get("createdAt"),
-                        folder_path=(project.get("folder") or {}).get("path"),
-                        siblings=len(raw_apps),
+                        folder_path=folder_path(project),
                     )
                 )
 
-    for app in apps:
-        # The notebook SQL plus whatever the served file itself queries.
-        sources = list(sql_by_project.get(app.project_id) or [])
+    def read_metadata(app: DeepnoteApp) -> Optional[DeepnoteFetchError]:
         try:
-            served = _get_text(
+            text = _get_text(
                 session,
                 "/files/download",
                 projectId=app.project_id,
-                path=app.entrypoint,
+                path=metadata_path(app.entrypoint),
             )
-            if served:
-                sources.append(served)
-            if with_status:
-                app.status = get_app_status(session, app.id)
         except DeepnoteFetchError as error:
-            errors.append(error)
-            continue
-        app.tables, app.runtime_table_refs = find_tables("\n".join(sources))
+            return error
+        if text is not None:
+            app.metadata, app.metadata_error = parse_metadata(text)
+        return None
 
-    return apps, errors
+    complete: List[DeepnoteApp] = []
+    with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
+        for app, error in zip(apps, pool.map(read_metadata, apps)):
+            if error is None:
+                complete.append(app)
+            else:
+                errors.append(error)
+
+    return complete, errors
