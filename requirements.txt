@@ -101,7 +101,7 @@ frozenlist==1.8.0
     #   aiosignal
 gitdb==4.0.12
     # via gitpython
-gitpython==3.2.0
+gitpython==3.2.1
     # via
     #   acryl-datahub
     #   mozilla-metric-config-parser
@@ -163,7 +163,9 @@ googleapis-common-protos[grpc]==1.75.5
 graphql-core==3.3.0
     # via acryl-datahub
 greenlet==3.5.6
-    # via acryl-datahub
+    # via
+    #   acryl-datahub
+    #   sqlalchemy
 grpc-google-iam-v1==0.14.5
     # via
     #   google-cloud-bigquery-analyticshub
