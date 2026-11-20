@@ -5,8 +5,6 @@ updates:
     directory: /
     schedule:
       interval: daily
-    reviewers:
-      - wwyc
   - package-ecosystem: github-actions
     directory: /
     schedule:
