@@ -4,8 +4,18 @@ updates:
   - package-ecosystem: pip
     directory: /
     schedule:
-      interval: daily
+      interval: weekly
+    groups:
+      # Batch minor/patch bumps into one PR; majors and acryl-datahub
+      # (core dependency, non-semver versions) still get their own PRs.
+      pip-minor-patch:
+        patterns: ["*"]
+        exclude-patterns: ["acryl-datahub*"]
+        update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]
